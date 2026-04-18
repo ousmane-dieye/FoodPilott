@@ -49,37 +49,12 @@ import { Badge } from "@/components/ui/Badge";
 
 const roleModules = {
   ADMIN: [
-    { id: "stats", label: "Dashboard", icon: BarChart3, path: "/admin/stats" },
-    { id: "menu", label: "Cartes", icon: Utensils, path: "/admin/menu" },
-    {
-      id: "reservations",
-      label: "Flux",
-      icon: ShieldCheck,
-      path: "/admin/reservations",
-    },
-    { id: "orders", label: "Ventes", icon: ShoppingBag, path: "/admin/orders" },
-    { id: "kitchen", label: "Cuisine", icon: ChefHat, path: "/admin/kitchen" },
-    {
-      id: "stock",
-      label: "Gestion Stocks",
-      icon: Package,
-      path: "/admin/stock",
-    },
+    { id: "dashboard", label: "Dashboard", icon: BarChart3, path: "/admin/dashboard" },
+    { id: "flux", label: "Flux du restaurant", icon: LayoutGrid, path: "/admin/flux" },
     { id: "ai", label: "Pilot IA", icon: Sparkles, path: "/admin/ai" },
-    {
-      id: "affluence",
-      label: "Affluence",
-      icon: LayoutGrid,
-      path: "/student/affluence",
-    },
-    {
-      id: "antigaspillage",
-      label: "Anti-Gaspi",
-      icon: Leaf,
-      path: "/admin/antigaspi",
-    },
-    { id: "fidelity", label: "Loyalty", icon: Trophy, path: "/admin/fidelity" },
-    { id: "auth", label: "Profil", icon: User, path: "/admin/profile" },
+    { id: "menu", label: "Menu", icon: Utensils, path: "/admin/menu" },
+    { id: "stock", label: "Stocks", icon: Package, path: "/admin/stock" },
+    { id: "profile", label: "Profil Admin", icon: User, path: "/admin/profile" },
   ],
   COOK: [
     { id: "kitchen", label: "Production", icon: ChefHat, path: "/kitchen/ops" },

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Routes, Route, Link } from "react-router-dom";
 import {
   BarChart3,
@@ -10,21 +10,13 @@ import {
   Star,
   Sparkles,
   ArrowUpRight,
-  Download,
-  Calendar,
-  Filter,
   Package,
   MoreVertical,
   ChevronLeft,
   Plus,
-  Utensils,
-  ShieldCheck,
-  ChefHat,
+  Calendar,
   Leaf,
-  Trophy,
-  User,
 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -38,8 +30,6 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  LineChart,
-  Line,
 } from "recharts";
 
 // UI Components
@@ -52,49 +42,20 @@ import {
 } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 
+// New Views
+import FluxView from "./admin/FluxView";
+import PilotAIView from "./admin/PilotAIView";
+import ProfileView from "./admin/ProfileView";
+
 export default function AdminDashboard() {
   return (
     <Routes>
-      <Route path="stats" element={<StatsView />} />
+      <Route path="dashboard" element={<StatsView />} />
+      <Route path="flux" element={<FluxView />} />
+      <Route path="ai" element={<PilotAIView />} />
       <Route path="menu" element={<AdminTopDishesView />} />
-      <Route
-        path="reservations"
-        element={
-          <PlaceholderView
-            title="Flux du Restaurant"
-            icon={<ShieldCheck size={40} />}
-          />
-        }
-      />
-      <Route path="orders" element={<AdminOrdersView />} />
-      <Route path="kitchen" element={<AdminKitchenView />} />
       <Route path="stock" element={<InventoryView />} />
-      <Route path="inventory" element={<InventoryView />} />
-      <Route
-        path="ai"
-        element={
-          <PlaceholderView
-            title="Pilotage IA Vision"
-            icon={<Sparkles size={40} />}
-          />
-        }
-      />
-      <Route path="antigaspi" element={<AdminGaspiView />} />
-      <Route
-        path="fidelity"
-        element={
-          <PlaceholderView
-            title="Loyalty Program"
-            icon={<Trophy size={40} />}
-          />
-        }
-      />
-      <Route
-        path="profile"
-        element={
-          <PlaceholderView title="Mon Profil Admin" icon={<User size={40} />} />
-        }
-      />
+      <Route path="profile" element={<ProfileView />} />
       <Route path="*" element={<StatsView />} />
     </Routes>
   );
