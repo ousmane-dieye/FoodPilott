@@ -12,6 +12,18 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function hasRole(role) {
+      return isSignedIn() && getUserRole() == role;
+    }
+
+    function isOneOfRoles(roles) {
+      return isSignedIn() && getUserRole() in roles;
+    }
+
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
@@ -22,21 +34,30 @@ service cloud.firestore {
 
     // Users
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isOwner(userId);
+      // Students can only read their own profile. Admins can read all.
+      allow read: if isOwner(userId) || isOneOfRoles(['MANAGER', 'SUPER_ADMIN']);
+      // Role can NEVER be changed by the user itself (Immortal Field Rule)
+      allow create: if isSignedIn() && request.resource.data.role == 'STUDENT'; 
+      allow update: if isOwner(userId) && request.resource.data.role == resource.data.role;
     }
 
     // Dishes
     match /dishes/{dishId} {
       allow read: if true;
-      allow write: if isSignedIn(); // In a real app, restrict to admins
+      allow write: if isOneOfRoles(['MANAGER', 'SUPER_ADMIN', 'COOK']);
     }
 
     // Orders
     match /orders/{orderId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || true); // true for staff/kitchen
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn(); // restrict based on role
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isOneOfRoles(['COOK', 'SERVER', 'MANAGER', 'SUPER_ADMIN'])
+      );
+      allow create: if hasRole('STUDENT') && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        (isOwner(resource.data.userId) && request.resource.data.status == 'cancelled') ||
+        (isOneOfRoles(['COOK', 'SERVER']) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']))
+      );
     }
 
     // Tables

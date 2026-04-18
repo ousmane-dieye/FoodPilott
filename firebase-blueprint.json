@@ -2,18 +2,20 @@
   "entities": {
     "User": {
       "title": "User",
-      "description": "User profile with allergies and loyalty points",
+      "description": "User profile with strictly enforced RBAC role",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
         "displayName": { "type": "string" },
         "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["STUDENT", "COOK", "SERVER", "MANAGER", "SUPER_ADMIN"] },
+        "isEmailVerified": { "type": "boolean" },
         "allergies": { "type": "array", "items": { "type": "string" } },
         "points": { "type": "integer" },
         "level": { "type": "string", "enum": ["Bronze", "Argent", "Or"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["userId", "email"]
+      "required": ["userId", "email", "role"]
     },
     "Dish": {
       "title": "Dish",
