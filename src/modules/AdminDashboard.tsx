@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Routes, Route, Navigate, Link } from "react-router-dom";
 import { 
   Users, 
@@ -25,7 +25,10 @@ import {
   Leaf,
   LayoutGrid,
   Trophy,
-  Utensils
+  Utensils,
+  X,
+  Save,
+  Edit2
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { 
@@ -33,15 +36,31 @@ import {
   AreaChart, Area 
 } from 'recharts';
 import { GoogleGenAI } from "@google/genai";
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'motion/react';
+
+// Services & Hooks
+import { MenuService } from "../services/menu";
+import { useMenu } from "../hooks/useMenu";
+import { MenuItem } from "../types";
+import { useAuthStore } from "../store/useAuthStore";
+import { MOCK_STOCK, MOCK_KPIS } from "../mocks/simulation";
 
 // --- SUB-COMPONENTS ---
 
 function AdminStats() {
-  const kpis = [
-    { label: 'Couverts', value: '842', trend: '+12%', up: true, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Réservations', value: '312', trend: '+5%', up: true, icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Gaspillage Évité', value: '42.5kg', trend: '+18%', up: true, icon: Trash2, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Satisfaction', value: '4.8/5', trend: '-2%', up: false, icon: Smile, color: 'text-orange-600', bg: 'bg-orange-50' },
+  const { isDemoMode } = useAuthStore();
+  
+  const stats = isDemoMode ? [
+    { label: 'Couverts', value: MOCK_KPIS.covers.value.toString(), trend: MOCK_KPIS.covers.trend, up: MOCK_KPIS.covers.up, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Réservations', value: MOCK_KPIS.reservations.value.toString(), trend: MOCK_KPIS.reservations.trend, up: MOCK_KPIS.reservations.up, icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Gaspillage Évité', value: MOCK_KPIS.wasteSaved.value, trend: MOCK_KPIS.wasteSaved.trend, up: MOCK_KPIS.wasteSaved.up, icon: Trash2, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Satisfaction', value: MOCK_KPIS.satisfaction.value, trend: MOCK_KPIS.satisfaction.trend, up: MOCK_KPIS.satisfaction.up, icon: Smile, color: 'text-orange-600', bg: 'bg-orange-50' },
+  ] : [
+    { label: 'Couverts', value: '42', trend: '0%', up: true, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Réservations', value: '12', trend: '0%', up: true, icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Gaspillage Évité', value: '0kg', trend: '0%', up: true, icon: Trash2, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Satisfaction', value: '5/5', trend: '0%', up: true, icon: Smile, color: 'text-orange-600', bg: 'bg-orange-50' },
   ];
 
   const salesData = [
@@ -55,8 +74,8 @@ function AdminStats() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {kpis.map((kpi, i) => (
-          <div key={i} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+        {stats.map((kpi, i) => (
+          <div key={i} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm transition-all hover:shadow-lg">
             <div className="flex justify-between items-start mb-4">
               <div className={cn("p-3 rounded-2xl", kpi.bg, kpi.color)}>
                 <kpi.icon size={24} />
@@ -75,8 +94,8 @@ function AdminStats() {
         ))}
       </div>
 
-      <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-        <h3 className="text-xl font-bold mb-8">Performance Hebdomadaire</h3>
+      <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm">
+        <h3 className="text-xl font-black italic uppercase tracking-tight mb-8">Performance Hebdomadaire</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={salesData}>
@@ -99,82 +118,206 @@ function AdminStats() {
   );
 }
 
+function MenuModal({ item, onClose }: { item?: MenuItem | null, onClose: () => void }) {
+  const [formData, setFormData] = useState<Omit<MenuItem, 'id'>>(item || {
+    name: '',
+    description: '',
+    price: 0,
+    category: 'Sénégalais',
+    stock: 50,
+    green: false,
+    allergens: []
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (item?.id) {
+        await MenuService.updateMenuItem(item.id, formData);
+        toast.success("Plat mis à jour");
+      } else {
+        await MenuService.addMenuItem(formData);
+        toast.success("Plat ajouté au menu");
+      }
+      onClose();
+    } catch (error) {
+      toast.error("Erreur d'enregistrement");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-[48px] w-full max-w-xl p-10 shadow-2xl space-y-8"
+      >
+        <div className="flex justify-between items-center">
+          <h2 className="text-3xl font-black italic uppercase tracking-tight">{item ? 'Éditer Plat' : 'Nouveau Plat'}</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={24} /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+             <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-gray-400 px-1">Nom du plat</label>
+                <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 font-bold text-sm focus:ring-2 focus:ring-primary/20" />
+             </div>
+             <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-gray-400 px-1">Prix (F)</label>
+                <input type="number" required value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 font-bold text-sm focus:ring-2 focus:ring-primary/20" />
+             </div>
+          </div>
+          <div className="space-y-2">
+             <label className="text-xs font-black uppercase text-gray-400 px-1">Description</label>
+             <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 font-bold text-sm focus:ring-2 focus:ring-primary/20 h-24 resize-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+             <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-gray-400 px-1">Catégorie</label>
+                <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 font-bold text-sm focus:ring-2 focus:ring-primary/20">
+                   <option>Sénégalais</option>
+                   <option>Veggie</option>
+                   <option>Classic</option>
+                   <option>Dessert</option>
+                </select>
+             </div>
+             <div className="space-y-2">
+                <label className="text-xs font-black uppercase text-gray-400 px-1">Stock Initial</label>
+                <input type="number" required value={formData.stock} onChange={e => setFormData({...formData, stock: Number(e.target.value)})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 font-bold text-sm focus:ring-2 focus:ring-primary/20" />
+             </div>
+          </div>
+          <button 
+            disabled={loading}
+            className="w-full bg-primary text-white py-4 rounded-[40px] font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {loading ? <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin" /> : <><Save size={20}/> Valider</>}
+          </button>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
+
 function AdminMenu() {
-  const dishes = [
-    { id: 1, name: 'Yassa au Poulet', cat: 'Classic', price: 2500, status: 'Active' },
-    { id: 2, name: 'Thieboudienne', cat: 'Classic', price: 3000, status: 'Active' },
-    { id: 3, name: 'Salade Bio', cat: 'Veggie', price: 1800, status: 'Inactive' },
-  ];
+  const { items, loading } = useMenu();
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null | undefined>(undefined);
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Supprimer ce plat de la carte ?")) {
+      try {
+        await MenuService.deleteMenuItem(id);
+        toast.success("Plat retiré");
+      } catch (e) {
+        toast.error("Erreur de suppression");
+      }
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-black tracking-tight">Gestion du Menu</h2>
-        <button className="bg-primary text-white px-6 py-2 rounded-2xl font-bold flex items-center gap-2">
+        <h2 className="text-2xl font-black tracking-tight uppercase italic">Gestion du Menu</h2>
+        <button 
+          onClick={() => setSelectedItem(null)}
+          className="bg-primary text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-primary/20 active:scale-95 transition-all"
+        >
           <Plus size={18} /> Nouveau Plat
         </button>
       </div>
-      <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 text-[10px] font-black uppercase text-gray-400">
-            <tr>
-              <th className="px-6 py-4">Plat</th>
-              <th className="px-6 py-4">Catégorie</th>
-              <th className="px-6 py-4">Prix</th>
-              <th className="px-6 py-4">Statut</th>
-              <th className="px-6 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {dishes.map(d => (
-              <tr key={d.id} className="hover:bg-gray-50/50 transition-colors">
-                <td className="px-6 py-4 font-bold">{d.name}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{d.cat}</td>
-                <td className="px-6 py-4 font-bold text-primary">{d.price} F</td>
-                <td className="px-6 py-4">
-                  <span className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider", d.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400')}>
-                    {d.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right italic text-gray-400 text-xs">Éditer / Supprimer</td>
+
+      <div className="bg-white rounded-[40px] border border-gray-100 overflow-hidden shadow-sm">
+        {loading ? (
+          <div className="p-20 text-center text-gray-400 font-bold uppercase text-[10px] tracking-[0.3em] animate-pulse">Syncing Database...</div>
+        ) : (
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 text-[10px] font-black uppercase text-gray-400">
+              <tr>
+                <th className="px-8 py-6">Plat</th>
+                <th className="px-6 py-6">Catégorie</th>
+                <th className="px-6 py-6">Prix</th>
+                <th className="px-6 py-6">Stock</th>
+                <th className="px-8 py-6 text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {items.map(d => (
+                <tr key={d.id} className="hover:bg-gray-50/50 transition-colors group">
+                  <td className="px-8 py-5 font-bold text-gray-900">{d.name}</td>
+                  <td className="px-6 py-5 text-xs font-bold text-gray-400 uppercase tracking-widest">{d.category}</td>
+                  <td className="px-6 py-5 font-black text-primary italic">{d.price} F</td>
+                  <td className="px-6 py-5">
+                    <span className={cn(
+                      "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                      d.stock > 10 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    )}>
+                      {d.stock} dispo
+                    </span>
+                  </td>
+                  <td className="px-8 py-5 text-right">
+                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setSelectedItem(d)} className="p-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-primary hover:text-white transition-all"><Edit2 size={16}/></button>
+                        <button onClick={() => handleDelete(d.id)} className="p-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={16}/></button>
+                     </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
+
+      <AnimatePresence>
+        {selectedItem !== undefined && <MenuModal item={selectedItem} onClose={() => setSelectedItem(undefined)} />}
+      </AnimatePresence>
     </div>
   );
 }
 
 function AdminStock() {
-  const stockItems = [
-    { name: 'Riz Basmati', qty: '120kg', status: 'OK', color: 'bg-green-500' },
-    { name: 'Poulet Fermier', qty: '15kg', status: 'CRITIQUE', color: 'bg-red-500' },
-    { name: 'Oignons', qty: '45kg', status: 'FAIBLE', color: 'bg-yellow-500' },
-  ];
+  const { items: menuItems } = useMenu();
+  const { isDemoMode } = useAuthStore();
+  
+  const displayStock = isDemoMode ? MOCK_STOCK : menuItems.map(m => ({
+    item: m.name,
+    quantity: m.stock,
+    unit: 'portions',
+    threshold: 10,
+    status: m.stock > 10 ? 'OK' : 'LOW'
+  }));
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-         <h2 className="text-2xl font-black tracking-tight">Inventaire & Stocks</h2>
+         <h2 className="text-2xl font-black tracking-tight uppercase italic text-gray-900 leading-none">Inventaire & Stocks</h2>
          <div className="flex gap-2">
-            <button className="p-2 bg-white border rounded-xl"><Filter size={18}/></button>
-            <button className="bg-black text-white px-6 py-2 rounded-2xl font-bold">Commander</button>
+            <button className="p-2 bg-white border border-gray-100 rounded-xl text-gray-400 hover:text-primary transition-colors"><Filter size={18}/></button>
+            <button className="bg-black text-white px-6 py-2 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all">Commander</button>
          </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stockItems.map((item, i) => (
-          <div key={i} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group">
-             <div className={cn("absolute top-0 left-0 w-1 h-full", item.color)} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {displayStock.map((s, i) => (
+          <div key={i} className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-lg transition-all">
+             <div className={cn("absolute top-0 left-0 w-1.5 h-full", s.status === 'OK' ? 'bg-green-500' : 'bg-red-500')} />
              <div className="flex justify-between mb-4">
-                <Package className="text-gray-400" />
-                <MoreVertical className="text-gray-300" />
+                <Package className="text-gray-400" size={24} />
+                <MoreVertical className="text-gray-200 group-hover:text-gray-400 transition-colors" />
              </div>
-             <h4 className="font-bold text-lg mb-1">{item.name}</h4>
-             <div className="flex justify-between items-end">
-                <p className="text-2xl font-black">{item.qty}</p>
-                <span className={cn("text-[9px] font-black px-2 py-1 rounded-lg", item.status === 'OK' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
-                   {item.status}
+             <h4 className="font-bold text-lg mb-1">{s.item}</h4>
+             <div className="flex justify-between items-end mt-4">
+                <div>
+                   <p className="text-2xl font-black italic">{s.quantity}</p>
+                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{s.unit}</p>
+                </div>
+                <span className={cn(
+                  "text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest",
+                   s.status === 'OK' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                )}>
+                   {s.status}
                 </span>
              </div>
           </div>
@@ -197,17 +340,20 @@ function AdminAI() {
     setPrompt("");
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
-            systemInstruction: "Tu es FoodPilot AI, l'assistant expert en gestion de restauration. Aide l'administrateur à optimiser son menu, ses stocks et à réduire le gaspillage."
+          systemInstruction: "Tu es FoodPilot AI, l'assistant expert en gestion de restauration universitaire pour l'ESMT Dakar. Aide l'administrateur à optimiser son menu, ses stocks et à réduire le gaspillage. Réponds de façon concise et professionnelle."
         }
       });
-      setChat([...newChat, { role: "ai", content: response.text || "Désolé, j'ai rencontré une erreur." }]);
+      
+      setChat([...newChat, { role: "ai", content: response.text || "Pas de réponse de l'IA." }]);
     } catch (e) {
-      setChat([...newChat, { role: "ai", content: "Erreur de connexion à l'IA." }]);
+      console.error(e);
+      setChat([...newChat, { role: "ai", content: "Désolé, l'assistant IA est temporairement indisponible. Veuillez vérifier votre clé API." }]);
     } finally {
       setLoading(false);
     }
@@ -215,52 +361,70 @@ function AdminAI() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 flex flex-col h-[600px] bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b bg-gray-50 flex items-center justify-between">
+      <div className="lg:col-span-2 flex flex-col h-[600px] bg-white rounded-[48px] border border-gray-100 shadow-sm overflow-hidden">
+        <div className="p-8 border-b bg-gray-50/50 flex items-center justify-between">
            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg">
-                 <Sparkles size={20} />
+              <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20 transition-transform hover:rotate-6">
+                 <Sparkles size={24} />
               </div>
               <div>
-                 <h3 className="font-black italic lowercase tracking-tight">Conseiller FoodPilot</h3>
-                 <p className="text-[10px] text-gray-400 uppercase font-bold">IA générative active</p>
+                 <h3 className="font-black italic text-lg uppercase tracking-tight leading-none">FoodPilot Assistant</h3>
+                 <p className="text-[10px] text-primary uppercase font-black mt-1 tracking-widest flex items-center gap-1">
+                   <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                   Analyse active
+                 </p>
               </div>
            </div>
-           <Settings size={18} className="text-gray-300" />
+           <Settings size={20} className="text-gray-300 hover:text-gray-600 transition-colors cursor-pointer" />
         </div>
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
            {chat.length === 0 && (
-             <div className="text-center py-20">
-                <Sparkles size={48} className="text-gray-100 mx-auto mb-4" />
-                <p className="text-gray-400 font-medium">Posez-moi une question sur vos ventes ou vos stocks.</p>
+             <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-4">
+                <div className="w-20 h-20 bg-gray-50 rounded-[32px] flex items-center justify-center text-gray-200">
+                  <MessageSquare size={40} />
+                </div>
+                <div>
+                   <p className="text-gray-900 font-black italic uppercase text-lg">Comment optimiser vos ventes ?</p>
+                   <p className="text-gray-400 font-medium text-sm mt-1">Posez une question sur vos ventes, stocks ou suggestions de menu.</p>
+                </div>
              </div>
            )}
            {chat.map((c, i) => (
-             <div key={i} className={cn("max-w-[80%] p-4 rounded-2xl", c.role === 'user' ? 'bg-primary text-white ml-auto rounded-tr-none' : 'bg-gray-100 text-gray-800 rounded-tl-none')}>
-                <p className="text-sm leading-relaxed">{c.content}</p>
+             <div key={i} className={cn(
+               "max-w-[85%] p-5 rounded-[32px] text-sm leading-relaxed shadow-sm",
+               c.role === 'user' ? 'bg-primary text-white ml-auto rounded-tr-none' : 'bg-gray-100 text-gray-800 rounded-tl-none border border-gray-50'
+             )}>
+                {c.content}
              </div>
            ))}
-           {loading && <div className="bg-gray-50 p-4 rounded-2xl mr-auto animate-pulse w-32" />}
+           {loading && (
+             <div className="flex gap-2">
+                {[1, 2, 3].map(i => (
+                  <motion.div key={i} animate={{ y: [-2, 2, -2] }} transition={{ repeat: Infinity, duration: 0.6, delay: i*0.1 }} className="w-2 h-2 bg-primary/30 rounded-full" />
+                ))}
+             </div>
+           )}
         </div>
-        <div className="p-4 border-t flex gap-2">
+        <div className="p-6 bg-white border-t border-gray-100 flex gap-3">
            <input 
              value={prompt} 
              onChange={(e) => setPrompt(e.target.value)}
              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-             placeholder="Suggère-moi un menu anti-gaspi pour demain..." 
-             className="flex-1 bg-gray-50 px-6 py-3 rounded-2xl border-none focus:ring-2 focus:ring-primary/20"
+             placeholder="Analyse les tendances de la semaine..." 
+             className="flex-1 bg-gray-50 px-8 py-4 rounded-3xl border-none focus:ring-2 focus:ring-primary/20 font-bold text-sm tracking-tight"
            />
-           <button onClick={handleSend} className="bg-primary text-white p-4 rounded-2xl shadow-lg shadow-primary/20">
-              <ChevronRight />
+           <button onClick={handleSend} className="bg-primary text-white p-5 rounded-3xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+              <ChevronRight size={24} />
            </button>
         </div>
       </div>
       <div className="space-y-6">
-         <div className="bg-green-600 p-8 rounded-3xl text-white shadow-xl shadow-green-100">
-            <h4 className="text-xs font-black uppercase tracking-[0.2em] mb-4">Optimisation IA</h4>
-            <p className="text-lg font-bold leading-tight">Le Yassa au Poulet est en sur-stock (45kg).</p>
-            <p className="text-sm opacity-80 mt-2 italic">L'IA suggère d'activer une promo "Heure Creuse" à 13h45.</p>
-            <button className="mt-6 w-full bg-white text-green-600 font-bold py-3 rounded-xl text-xs uppercase tracking-widest">Appliquer</button>
+         <div className="bg-primary p-10 rounded-[48px] text-white shadow-2xl relative overflow-hidden group">
+            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 blur-3xl rounded-full" />
+            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 opacity-70">Insights Strategiques</h4>
+            <p className="text-xl font-black italic leading-tight">Augmentation de 25% <br/> des plats VG le mercredi.</p>
+            <p className="text-xs opacity-70 mt-3 font-medium">L'IA suggère d'élargir le menu Veggie.</p>
+            <button className="mt-8 w-full bg-white text-primary font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest shadow-xl shadow-black/5 active:scale-95 transition-all">Appliquer le plan</button>
          </div>
       </div>
     </div>
@@ -269,32 +433,34 @@ function AdminAI() {
 
 function AdminAntiGaspi() {
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-black tracking-tight">Programme Anti-Gaspillage</h2>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <h2 className="text-3xl font-black tracking-tight uppercase italic">Zero-Waste Engine</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-         <div className="bg-white p-8 rounded-4xl border border-gray-100 shadow-sm flex flex-col items-center text-center justify-center border-dashed border-2">
-            <Leaf size={48} className="text-green-500 mb-4" />
-            <h3 className="text-lg font-bold">Créer un Repas "Faut l'finir"</h3>
-            <p className="text-gray-400 text-sm mb-6">Mettez en avant les invendus à prix cassé.</p>
-            <button className="bg-green-600 text-white px-8 py-3 rounded-2xl font-bold flex items-center gap-2">
-               <Plus size={18} /> Lancer Offre
+         <div className="bg-white p-12 rounded-[56px] border border-gray-100 shadow-sm flex flex-col items-center text-center justify-center border-dashed border-2 group hover:border-primary transition-all cursor-pointer">
+            <div className="w-20 h-20 bg-green-50 text-green-600 rounded-[32px] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+               <Leaf size={40} />
+            </div>
+            <h3 className="text-2xl font-black italic uppercase tracking-tight">Boost Anti-Gaspi</h3>
+            <p className="text-gray-400 text-sm mb-8 font-medium italic">Automatisez les réductions de fin de service.</p>
+            <button className="bg-green-600 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-green-100 active:scale-95 transition-all">
+               Programmer une Offre
             </button>
          </div>
-         <div className="bg-white p-8 rounded-4xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold mb-4">Statistiques Impact</h3>
-            <div className="space-y-4">
+         <div className="bg-white p-10 rounded-[56px] border border-gray-100 shadow-sm">
+            <h3 className="font-black italic text-lg mb-8 uppercase tracking-tight">Impact Environnemental</h3>
+            <div className="space-y-8">
                {[
-                 { label: 'Plats sauvés', value: '142', color: 'bg-green-500' },
-                 { label: 'CO2 économisé', value: '45kg', color: 'bg-blue-500' },
-                 { label: 'Revenu récupéré', value: '250k F', color: 'bg-orange-500' },
+                 { label: 'Repas sauvés', value: '1,420', color: 'bg-green-500' },
+                 { label: 'CO2 réduit', value: '450kg', color: 'bg-blue-500' },
+                 { label: 'Efficacité', value: '94%', color: 'bg-orange-500' },
                ].map(s => (
-                 <div key={s.label}>
-                    <div className="flex justify-between text-xs font-bold mb-1 uppercase tracking-tighter">
-                       <span>{s.label}</span>
-                       <span>{s.value}</span>
+                 <div key={s.label} className="space-y-2">
+                    <div className="flex justify-between items-end px-1">
+                       <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{s.label}</span>
+                       <span className="text-lg font-black italic">{s.value}</span>
                     </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                       <div className={cn("h-full", s.color)} style={{ width: '70%' }} />
+                    <div className="h-2.5 bg-gray-50 rounded-full overflow-hidden border border-gray-100/50">
+                       <motion.div initial={{ width: 0 }} animate={{ width: s.value.includes('%') ? s.value : '80%' }} className={cn("h-full rounded-full", s.color)} />
                     </div>
                  </div>
                ))}
@@ -309,18 +475,18 @@ function AdminAntiGaspi() {
 
 export default function AdminDashboard() {
   return (
-    <div className="space-y-8">
-       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div className="space-y-8 pb-12 font-sans">
+       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-             <p className="text-sm font-bold text-primary uppercase tracking-widest mb-1 italic">Backoffice ESMT</p>
-             <h2 className="text-4xl font-black text-gray-900 tracking-tight leading-none uppercase italic">Console FoodPilot</h2>
+             <p className="text-sm font-black text-primary uppercase tracking-[0.3em] mb-2 italic">Backoffice ESMT</p>
+             <h2 className="text-5xl font-black text-gray-900 tracking-tighter leading-none uppercase italic">Chef Dashboard</h2>
           </div>
-          <div className="flex gap-2">
-             <button className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all font-mono">
-                <FileText size={16} /> LOGS
+          <div className="flex gap-3">
+             <button className="flex items-center gap-2 bg-white border border-gray-200 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-500 hover:bg-gray-50 transition-all font-mono shadow-sm">
+                <FileText size={16} /> SYSTEM LOGS
              </button>
-             <button className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-black/20 hover:scale-105 transition-transform">
-                <ShieldCheck size={16} /> SYSTEM CHECK
+             <button className="flex items-center gap-2 bg-black text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-black/20 hover:scale-105 active:scale-95 transition-all">
+                <ShieldCheck size={16} /> SECURE AUDIT
              </button>
           </div>
        </div>
@@ -332,13 +498,13 @@ export default function AdminDashboard() {
              <Route path="stock" element={<AdminStock />} />
              <Route path="ai" element={<AdminAI />} />
              <Route path="antigaspi" element={<AdminAntiGaspi />} />
-             <Route path="reservations" element={<div className="p-20 text-center italic text-gray-400">Gestion des Réservations...</div>} />
-             <Route path="orders" element={<div className="p-20 text-center italic text-gray-400">Flux des Commandes...</div>} />
-             <Route path="kitchen" element={<div className="p-20 text-center italic text-gray-400">Pilotage Temps Réel Cuisine...</div>} />
-             <Route path="tables" element={<div className="p-20 text-center italic text-gray-400">Plan de Salle Dynamique...</div>} />
-             <Route path="fidelity" element={<div className="p-20 text-center italic text-gray-400">Programmes de Fidélité...</div>} />
-             <Route path="feedback" element={<div className="p-20 text-center italic text-gray-400">Feedback & Support...</div>} />
-             <Route path="profile" element={<div className="p-20 text-center italic text-gray-400">Paramètres du Profil...</div>} />
+             <Route path="reservations" element={<div className="p-20 text-center italic text-gray-400 font-bold uppercase tracking-widest text-xs">Gestion des Réservations...</div>} />
+             <Route path="orders" element={<div className="p-20 text-center italic text-gray-400 font-bold uppercase tracking-widest text-xs">Flux des Commandes...</div>} />
+             <Route path="kitchen" element={<div className="p-20 text-center italic text-gray-400 font-bold uppercase tracking-widest text-xs">Pilotage Temps Réel Cuisine...</div>} />
+             <Route path="tables" element={<div className="p-20 text-center italic text-gray-400 font-bold uppercase tracking-widest text-xs">Plan de Salle Dynamique...</div>} />
+             <Route path="fidelity" element={<div className="p-20 text-center italic text-gray-400 font-bold uppercase tracking-widest text-xs">Programmes de Fidélité...</div>} />
+             <Route path="feedback" element={<div className="p-20 text-center italic text-gray-400 font-bold uppercase tracking-widest text-xs">Feedback & Support...</div>} />
+             <Route path="profile" element={<div className="p-20 text-center italic text-gray-400 font-bold uppercase tracking-widest text-xs">Paramètres du Profil...</div>} />
              <Route path="*" element={<Navigate to="stats" replace />} />
           </Routes>
        </div>

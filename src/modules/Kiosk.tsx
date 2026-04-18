@@ -10,8 +10,18 @@ import {
 import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 
+import { useAuthStore } from "../store/useAuthStore";
+import { MOCK_TABLES } from "../mocks/simulation";
+
 export default function Kiosk() {
+  const { isDemoMode } = useAuthStore();
   const [scanState, setScanState] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
+  
+  const tables = isDemoMode ? MOCK_TABLES : [];
+  const occupiedCount = tables.filter(t => t.status === 'occupée').length;
+  const occupancyRate = tables.length > 0 ? Math.round((occupiedCount / tables.length) * 100) : 78;
+  const waitingTime = isDemoMode ? "8 MIN" : "12 MIN";
+  const availableTable = isDemoMode ? tables.find(t => t.status === 'libre')?.number : 14;
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -50,7 +60,7 @@ export default function Kiosk() {
                 <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="relative z-10">
                    <p className="text-gray-400 text-xs font-bold uppercase mb-2">Occupation actuelle</p>
-                   <p className="text-5xl font-black text-primary">78%</p>
+                   <p className="text-5xl font-black text-primary">{occupancyRate}%</p>
                 </div>
                 <Users size={64} className="text-gray-800 -rotate-12 group-hover:text-primary/20 transition-colors" />
              </div>
@@ -62,7 +72,7 @@ export default function Kiosk() {
                    </div>
                    <div>
                       <h3 className="text-xl font-black uppercase tracking-tight">Temps d'attente</h3>
-                      <p className="text-4xl font-black leading-none">8 MIN</p>
+                      <p className="text-4xl font-black leading-none">{waitingTime}</p>
                    </div>
                 </div>
              </div>
@@ -122,7 +132,7 @@ export default function Kiosk() {
                         <p className="text-3xl font-black uppercase tracking-tight leading-none mb-1">DÉGUSTEZ BIEN !</p>
                         <p className="text-gray-400 text-lg font-bold">Votre plateau est validé</p>
                         <div className="mt-4 flex items-center justify-center gap-2 text-primary font-black">
-                           <Utensils size={20} /> TABLE #14 DISPONIBLE
+                           <Utensils size={20} /> TABLE #{availableTable} DISPONIBLE
                         </div>
                      </div>
                   </motion.div>

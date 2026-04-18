@@ -2,80 +2,102 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Default deny
+    // 0. Global Safety Net
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Reuseable functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
+    // --- REUSABLE HELPERS ---
     
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    function isSignedIn() { return request.auth != null; }
+    // NOTE: Strictly speaking, production rules should check email_verified.
+    // However, for this environment/hackathon, we allow verified to be just signed in
+    // to prevent blocking users from their accounts without a verification email flow.
+    function isVerified() { return isSignedIn(); } 
+    function getUserData() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function getRole() { return getUserData().role; }
+    
+    function isAdmin() { return isVerified() && getRole() == 'ADMIN'; }
+    function isCook() { return isVerified() && getRole() == 'COOK'; }
+    function isStudent() { return isVerified() && getRole() == 'STUDENT'; }
+    
+    function isOwner(userId) { return isVerified() && request.auth.uid == userId; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    
+    // --- VALIDATION BLUEPRINTS ---
+
+    function isValidUser(data) {
+      return data.uid == request.auth.uid 
+        && data.email is string && data.email.size() <= 100
+        && data.displayName is string && data.displayName.size() <= 100
+        && data.role in ['STUDENT', 'CLIENT'] // Users can only self-assign STUDENT or CLIENT on create
+        && data.keys().hasAll(['uid', 'email', 'role', 'displayName'])
+        && (data.role != 'STUDENT' || (data.firstName is string && data.lastName is string))
+        && (data.role != 'CLIENT' || (data.fullName is string))
+        && data.keys().size() <= 15;
     }
 
-    function hasRole(role) {
-      return isSignedIn() && getUserRole() == role;
+    function isValidOrder(data) {
+      return data.userId == request.auth.uid
+        && data.items is list && data.items.size() > 0 && data.items.size() <= 20
+        && data.total is number && data.total > 0
+        && data.status in ['pending', 'preparing', 'ready', 'completed', 'cancelled']
+        && data.keys().hasAll(['userId', 'items', 'total', 'status'])
+        && data.keys().size() <= 10;
     }
 
-    function isOneOfRoles(roles) {
-      return isSignedIn() && getUserRole() in roles;
-    }
+    // --- COLLECTIONS ---
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    // Users
+    // 1. USERS: RBAC & Profiles
     match /users/{userId} {
-      // Students can only read their own profile. Admins can read all.
-      allow read: if isOwner(userId) || isOneOfRoles(['MANAGER', 'SUPER_ADMIN']);
-      // Role can NEVER be changed by the user itself (Immortal Field Rule)
-      allow create: if isSignedIn() && request.resource.data.role == 'STUDENT'; 
-      allow update: if isOwner(userId) && request.resource.data.role == resource.data.role;
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin() || isCook());
+      allow list: if isAdmin();
+      
+      // CREATE: 
+      // - STUDENT: Self-service registration (Role must be STUDENT)
+      // - ADMIN: Can create any user (e.g., COOK)
+      allow create: if (isOwner(userId) && isValidUser(incoming()) && incoming().createdAt == request.time)
+        || isAdmin();
+        
+      // UPDATE: 
+      // - OWNER: Can change display name/allergies, but NOT role
+      // - ADMIN: Full control
+      allow update: if isValidId(userId) && (
+        (isOwner(userId) && incoming().role == existing().role 
+          && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'firstName', 'lastName', 'fullName', 'phoneNumber', 'allergies', 'otherAllergies', 'photoURL', 'updatedAt'])
+          && incoming().updatedAt == request.time)
+        || isAdmin()
+      );
     }
 
-    // Dishes
-    match /dishes/{dishId} {
-      allow read: if true;
-      allow write: if isOneOfRoles(['MANAGER', 'SUPER_ADMIN', 'COOK']);
+    // 2. MENUS: Public Read, Admin Write
+    match /menuItems/{menuId} {
+      allow read: if isValidId(menuId) && isSignedIn();
+      allow write: if isValidId(menuId) && isAdmin();
     }
 
-    // Orders
+    // 3. ORDERS: Relational Access
     match /orders/{orderId} {
-      allow read: if isSignedIn() && (
-        resource.data.userId == request.auth.uid || 
-        isOneOfRoles(['COOK', 'SERVER', 'MANAGER', 'SUPER_ADMIN'])
-      );
-      allow create: if hasRole('STUDENT') && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && (
-        (isOwner(resource.data.userId) && request.resource.data.status == 'cancelled') ||
-        (isOneOfRoles(['COOK', 'SERVER']) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']))
-      );
+      allow get: if isValidId(orderId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || isCook());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || isCook());
+      
+      allow create: if isStudent() && isValidOrder(incoming()) 
+        && incoming().createdAt == request.time;
+        
+      allow update: if isValidId(orderId) && (
+        (isOwner(existing().userId) && existing().status == 'pending' && incoming().status == 'cancelled'
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+        ||
+        ((isCook() || isAdmin()) && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+      ) && incoming().updatedAt == request.time;
     }
 
-    // Tables
-    match /tables/{tableId} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    // Feedback
-    match /feedback/{feedbackId} {
-      allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-    }
-
-    // Analytics
-    match /analytics/daily {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+    // 4. STOCK ALERTS: Cook & Admin
+    match /stockAlerts/{alertId} {
+      allow read, write: if isCook() || isAdmin();
     }
   }
 }
