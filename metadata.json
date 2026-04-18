@@ -1,0 +1,6 @@
+{
+  "name": "FoodPilot",
+  "description": "Système intelligent de gestion de restauration universitaire avec prévisions IA, gestion des files d'attente et réduction du gaspillage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

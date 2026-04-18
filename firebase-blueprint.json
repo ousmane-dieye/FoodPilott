@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with allergies and loyalty points",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "allergies": { "type": "array", "items": { "type": "string" } },
+        "points": { "type": "integer" },
+        "level": { "type": "string", "enum": ["Bronze", "Argent", "Or"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email"]
+    },
+    "Dish": {
+      "title": "Dish",
+      "description": "Menu item details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "allergens": { "type": "array", "items": { "type": "string" } },
+        "stock": { "type": "integer" },
+        "category": { "type": "string" },
+        "isAntiGaspillage": { "type": "boolean" },
+        "rating": { "type": "number" },
+        "availableSlots": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["name", "price"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "dishId": { "type": "string" },
+        "dishName": { "type": "string" },
+        "slot": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "preparing", "ready", "picked_up", "cancelled"] },
+        "paymentStatus": { "type": "string", "enum": ["unpaid", "paid"] },
+        "total": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "qrCodeData": { "type": "string" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "dishId", "slot", "status"]
+    },
+    "Table": {
+      "title": "Table",
+      "description": "Dining table status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "number": { "type": "integer" },
+        "status": { "type": "string", "enum": ["free", "occupied", "reserved"] },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["number", "status"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "Customer feedback on orders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "orderId": { "type": "string" },
+        "rating": { "type": "integer" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "orderId", "rating"]
+    },
+    "Stats": {
+      "title": "Statistics",
+      "description": "Global performance metrics",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "couverts": { "type": "integer" },
+        "wasteAvoidedKg": { "type": "number" },
+        "satisfactionScore": { "type": "number" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Individual user profiles"
+    },
+    "/dishes/{dishId}": {
+      "schema": "Dish",
+      "description": "Restaurant menu items"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders"
+    },
+    "/tables/{tableId}": {
+      "schema": "Table",
+      "description": "Real-time table status"
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "Customer meal feedback"
+    },
+    "/analytics/daily": {
+      "schema": "Stats",
+      "description": "Daily usage statistics"
+    }
+  }
+}
