@@ -1,10 +1,15 @@
-export type UserRole = 'ADMIN' | 'COOK' | 'STUDENT' | 'CLIENT';
+export type UserRole = "ADMIN" | "COOK" | "STUDENT" | "CLIENT";
 
-export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
+export type OrderStatus =
+  | "pending"
+  | "preparing"
+  | "ready"
+  | "completed"
+  | "cancelled";
 
-export type PaymentMethod = 'wave' | 'orange_money' | 'cash';
+export type PaymentMethod = "wave" | "orange_money" | "cash";
 
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cash_pending';
+export type PaymentStatus = "pending" | "paid" | "failed" | "cash_pending";
 
 export interface UserProfile {
   uid: string;
@@ -75,7 +80,7 @@ export interface Review {
 export interface TimeSlot {
   id: string;
   time: string;
-  affluence: 'low' | 'medium' | 'high';
+  affluence: "low" | "medium" | "high";
   description: string;
   bonusPoints: number;
 }
@@ -94,7 +99,7 @@ export interface InventoryItem {
   quantity: number;
   unit: string;
   minThreshold: number;
-  status: 'ok' | 'low' | 'out';
+  status: "ok" | "low" | "out";
   updatedAt: any;
 }
 
@@ -103,6 +108,6 @@ export interface Message {
   senderId: string;
   senderName: string;
   content: string;
-  type: 'general' | 'alert' | 'update';
+  type: "general" | "alert" | "update";
   createdAt: any;
 }

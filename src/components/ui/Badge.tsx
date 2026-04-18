@@ -3,12 +3,23 @@ import { cn } from "@/lib/utils";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children?: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'outline';
+  variant?:
+    | "primary"
+    | "secondary"
+    | "success"
+    | "warning"
+    | "danger"
+    | "outline";
   className?: string;
   key?: string | number;
 }
 
-export const Badge = ({ children, variant = 'primary', className, ...props }: BadgeProps) => {
+export const Badge = ({
+  children,
+  variant = "primary",
+  className,
+  ...props
+}: BadgeProps) => {
   const variants = {
     primary: "bg-primary/10 text-primary border-primary/20",
     secondary: "bg-gray-100 text-gray-600 border-gray-200",
@@ -19,12 +30,12 @@ export const Badge = ({ children, variant = 'primary', className, ...props }: Ba
   };
 
   return (
-    <span 
+    <span
       className={cn(
         "inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-bold uppercase tracking-wider border",
         variants[variant],
-        className
-      )} 
+        className,
+      )}
       {...props}
     >
       {children}

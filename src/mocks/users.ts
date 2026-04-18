@@ -8,7 +8,7 @@ export const MOCK_USERS: Record<string, UserProfile> = {
     displayName: "Ousmane Dieng",
     points: 1250,
     allergies: ["Arachides"],
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   },
   demo_cook: {
     uid: "demo_cook",
@@ -16,7 +16,7 @@ export const MOCK_USERS: Record<string, UserProfile> = {
     role: "COOK",
     displayName: "Chef Omar",
     points: 0,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   },
   demo_admin: {
     uid: "demo_admin",
@@ -24,13 +24,13 @@ export const MOCK_USERS: Record<string, UserProfile> = {
     role: "ADMIN",
     displayName: "Fatou Admin",
     points: 0,
-    createdAt: new Date().toISOString()
-  }
+    createdAt: new Date().toISOString(),
+  },
 };
 
 export const MOCK_LOYALTY = {
   points: 1250,
   tier: "Gold",
   nextReward: "Café Touba offert",
-  pointsToNext: 250
+  pointsToNext: 250,
 };

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -6,15 +6,15 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   /* Custom Palette - Pure Light Mode */
-  --color-primary: #00A86B; /* Accent */
+  --color-primary: #00a86b; /* Accent */
   --color-primary-dark: #008f5a;
-  --color-surface: #FFFFFF;
-  --color-surface-muted: #F3F4F6;
-  --color-background: #F9FAFB; /* Off-white secondary background */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f3f4f6;
+  --color-background: #f9fafb; /* Off-white secondary background */
   --color-ink: #111827; /* Main text */
-  --color-ink-secondary: #4B5563; /* Secondary text */
-  --color-line: #E5E7EB;
-  
+  --color-ink-secondary: #4b5563; /* Secondary text */
+  --color-line: #e5e7eb;
+
   /* Shadows - Light and soft */
   --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.05);
   --shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.08);
@@ -32,17 +32,32 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply tracking-tight leading-tight text-ink;
   }
 
-  h1 { @apply text-[32px] md:text-[36px] font-bold; }
-  h2 { @apply text-[28px] md:text-[32px] font-bold; }
-  h3 { @apply text-[24px] md:text-[28px] font-semibold; }
-  h4 { @apply text-[20px] md:text-[24px] font-semibold; }
+  h1 {
+    @apply text-[32px] md:text-[36px] font-bold;
+  }
+  h2 {
+    @apply text-[28px] md:text-[32px] font-bold;
+  }
+  h3 {
+    @apply text-[24px] md:text-[28px] font-semibold;
+  }
+  h4 {
+    @apply text-[20px] md:text-[24px] font-semibold;
+  }
 
-  p, span, div {
+  p,
+  span,
+  div {
     @apply text-base text-ink;
   }
 }
@@ -67,7 +82,7 @@
   .text-base {
     font-size: 16px !important;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
@@ -77,11 +92,11 @@
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-gray-200 rounded-full hover:bg-gray-300 transition-colors;
   }
-  
+
   .text-secondary {
     @apply text-ink-secondary text-[14px] md:text-[16px];
   }
-  
+
   .text-tiny {
     @apply text-[14px];
   }
@@ -105,6 +120,10 @@
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }

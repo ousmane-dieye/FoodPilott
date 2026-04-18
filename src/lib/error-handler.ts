@@ -1,8 +1,8 @@
-import { auth } from './firebase';
+import { auth } from "./firebase";
 
 export interface FirestoreErrorInfo {
   error: string;
-  operationType: 'create' | 'update' | 'delete' | 'list' | 'get' | 'write';
+  operationType: "create" | "update" | "delete" | "list" | "get" | "write";
   path: string | null;
   authInfo: {
     userId: string | null;
@@ -10,14 +10,18 @@ export interface FirestoreErrorInfo {
     emailVerified: boolean;
     isAnonymous: boolean;
     providerInfo: any[];
-  }
+  };
 }
 
-export function handleFirestoreError(error: any, operationType: FirestoreErrorInfo['operationType'], path: string | null = null): never {
+export function handleFirestoreError(
+  error: any,
+  operationType: FirestoreErrorInfo["operationType"],
+  path: string | null = null,
+): never {
   const user = auth.currentUser;
-  
+
   const errorInfo: FirestoreErrorInfo = {
-    error: error.message || 'Unknown Firestore error',
+    error: error.message || "Unknown Firestore error",
     operationType,
     path,
     authInfo: {
@@ -26,7 +30,7 @@ export function handleFirestoreError(error: any, operationType: FirestoreErrorIn
       emailVerified: user?.emailVerified || false,
       isAnonymous: user?.isAnonymous || false,
       providerInfo: user?.providerData || [],
-    }
+    },
   };
 
   const message = JSON.stringify(errorInfo, null, 2);

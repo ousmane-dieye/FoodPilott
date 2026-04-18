@@ -29,17 +29,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               "focus:border-primary focus:bg-surface focus:shadow-soft focus:ring-4 focus:ring-primary/10",
               icon && "pl-12",
               error && "border-red-500 focus:border-red-500 bg-red-50/10",
-              className
+              className,
             )}
             {...props}
           />
         </div>
         {error && (
-          <p className="text-sm font-bold text-red-600 ml-1 mt-1">
-            {error}
-          </p>
+          <p className="text-sm font-bold text-red-600 ml-1 mt-1">{error}</p>
         )}
       </div>
     );
-  }
+  },
 );

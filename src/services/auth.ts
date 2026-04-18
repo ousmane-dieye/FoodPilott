@@ -1,19 +1,19 @@
-import { 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  signOut, 
+import {
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  User
-} from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
-import { useAuthStore } from '../store/useAuthStore';
-import { UserProfile, UserRole } from '../types';
-import { handleFirestoreError } from '../lib/error-handler';
-import { toast } from 'sonner';
+  User,
+} from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../lib/firebase";
+import { useAuthStore } from "../store/useAuthStore";
+import { UserProfile, UserRole } from "../types";
+import { handleFirestoreError } from "../lib/error-handler";
+import { toast } from "sonner";
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -48,12 +48,16 @@ export const AuthService = {
     otherAllergies?: string;
   }) {
     try {
-      const result = await createUserWithEmailAndPassword(auth, data.email, data.pass);
+      const result = await createUserWithEmailAndPassword(
+        auth,
+        data.email,
+        data.pass,
+      );
       const user = result.user;
-      
-      const role: UserRole = 'STUDENT';
-      const userRef = doc(db, 'users', user.uid);
-      
+
+      const role: UserRole = "STUDENT";
+      const userRef = doc(db, "users", user.uid);
+
       const newProfile: UserProfile = {
         uid: user.uid,
         email: user.email!,
@@ -67,7 +71,7 @@ export const AuthService = {
         points: 0,
         createdAt: serverTimestamp(),
       };
-      
+
       await setDoc(userRef, newProfile);
       useAuthStore.getState().setProfile(newProfile);
       return newProfile;
@@ -84,12 +88,16 @@ export const AuthService = {
     phone?: string;
   }) {
     try {
-      const result = await createUserWithEmailAndPassword(auth, data.email, data.pass);
+      const result = await createUserWithEmailAndPassword(
+        auth,
+        data.email,
+        data.pass,
+      );
       const user = result.user;
-      
-      const role: UserRole = 'CLIENT';
-      const userRef = doc(db, 'users', user.uid);
-      
+
+      const role: UserRole = "CLIENT";
+      const userRef = doc(db, "users", user.uid);
+
       const newProfile: UserProfile = {
         uid: user.uid,
         email: user.email!,
@@ -100,7 +108,7 @@ export const AuthService = {
         points: 0,
         createdAt: serverTimestamp(),
       };
-      
+
       await setDoc(userRef, newProfile);
       useAuthStore.getState().setProfile(newProfile);
       return newProfile;
@@ -112,39 +120,39 @@ export const AuthService = {
 
   handleAuthError(error: any) {
     let message = "Une erreur est survenue lors de l'authentification.";
-    
+
     switch (error.code) {
-      case 'auth/email-already-in-use':
+      case "auth/email-already-in-use":
         message = "Cet email est déjà utilisé par un autre compte.";
         break;
-      case 'auth/weak-password':
+      case "auth/weak-password":
         message = "Le mot de passe est trop faible (6 caractères minimum).";
         break;
-      case 'auth/invalid-email':
+      case "auth/invalid-email":
         message = "L'adresse email n'est pas valide.";
         break;
-      case 'auth/wrong-password':
-      case 'auth/invalid-credential':
-      case 'auth/invalid-login-credentials':
+      case "auth/wrong-password":
+      case "auth/invalid-credential":
+      case "auth/invalid-login-credentials":
         message = "Identifiants invalides (E-mail ou mot de passe incorrect).";
         break;
-      case 'auth/user-not-found':
+      case "auth/user-not-found":
         message = "Aucun utilisateur trouvé avec cet email.";
         break;
-      case 'auth/user-disabled':
+      case "auth/user-disabled":
         message = "Ce compte a été désactivé.";
         break;
-      case 'auth/too-many-requests':
+      case "auth/too-many-requests":
         message = "Trop de tentatives échouées. Veuillez réessayer plus tard.";
         break;
-      case 'auth/popup-closed-by-user':
+      case "auth/popup-closed-by-user":
         message = "Fenêtre de connexion fermée par l'utilisateur.";
         break;
-      case 'auth/operation-not-allowed':
+      case "auth/operation-not-allowed":
         message = "Cette méthode d'authentification n'est pas activée.";
         break;
     }
-    
+
     toast.error(message);
     console.error("Firebase Auth Error:", error.code, message, error.message);
   },
@@ -159,7 +167,7 @@ export const AuthService = {
       uid: `demo_${role.toLowerCase()}`,
       email: `demo@${role.toLowerCase()}.com`,
       displayName: `Demo ${role}`,
-      getIdToken: async () => `demo_token_${role.toLowerCase()}`
+      getIdToken: async () => `demo_token_${role.toLowerCase()}`,
     } as any; // Cast as any to include mock method
 
     const mockProfile: UserProfile = {
@@ -167,7 +175,7 @@ export const AuthService = {
       email: mockUser.email!,
       role,
       displayName: mockUser.displayName!,
-      points: role === 'STUDENT' ? 1250 : 0,
+      points: role === "STUDENT" ? 1250 : 0,
       createdAt: new Date().toISOString(),
     };
 
@@ -191,19 +199,23 @@ export const AuthService = {
   },
 
   async syncProfile(user: User) {
-    const userRef = doc(db, 'users', user.uid);
+    const userRef = doc(db, "users", user.uid);
     try {
       // Small delay to allow registration process to settle if concurrent
       const snap = await getDoc(userRef);
-      
+
       if (!snap.exists()) {
         // Only auto-create if we are NOT in registration flow (e.g. Google Login first time)
         // We use safe defaults that comply with Firestore rules
-        const nameParts = (user.displayName || user.email?.split('@')[0] || 'Utilisateur Inconnu').split(' ');
-        const firstName = nameParts[0] || 'Utilisateur';
-        const lastName = nameParts.slice(1).join(' ') || 'ESMT';
+        const nameParts = (
+          user.displayName ||
+          user.email?.split("@")[0] ||
+          "Utilisateur Inconnu"
+        ).split(" ");
+        const firstName = nameParts[0] || "Utilisateur";
+        const lastName = nameParts.slice(1).join(" ") || "ESMT";
 
-        const role: UserRole = 'STUDENT';
+        const role: UserRole = "STUDENT";
 
         const newProfile: UserProfile = {
           uid: user.uid,
@@ -215,7 +227,7 @@ export const AuthService = {
           points: 0,
           createdAt: serverTimestamp(),
         };
-        
+
         try {
           await setDoc(userRef, newProfile);
           useAuthStore.getState().setProfile(newProfile);
@@ -223,7 +235,7 @@ export const AuthService = {
         } catch (setErr: any) {
           // If the rule still rejects, it might be due to a race with registerStudent
           // we wait a bit and retry looking for the document
-          await new Promise(r => setTimeout(r, 800));
+          await new Promise((r) => setTimeout(r, 800));
           const retrySnap = await getDoc(userRef);
           if (retrySnap.exists()) {
             const p = retrySnap.data() as UserProfile;
@@ -240,23 +252,42 @@ export const AuthService = {
     } catch (error: any) {
       console.error("Profile sync error:", error);
       // Propagate error for login flow but keep it manageable
-      if (error.code === 'permission-denied') {
+      if (error.code === "permission-denied") {
         throw new Error("Accès au profil refusé. Vérifiez vos permissions.");
       }
       throw error;
     }
   },
 
-  init() {
-    onAuthStateChanged(auth, async (user) => {
-      // If we are already in demo mode, don't let onAuthStateChanged overwrite it
-      if (useAuthStore.getState().isDemoMode) return;
+  // Store the unsubscribe function to prevent duplicates
+  _unsubscribeAuth: null as (() => void) | null,
 
-      useAuthStore.getState().setUser(user);
-      if (user) {
-        await this.syncProfile(user);
+  init() {
+    // Cleanup previous listener if it exists
+    if (this._unsubscribeAuth) {
+      this._unsubscribeAuth();
+    }
+
+    this._unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      // If we are already in demo mode, don't let onAuthStateChanged overwrite it
+      if (useAuthStore.getState().isDemoMode) {
+        useAuthStore.getState().setLoading(false);
+        return;
       }
-      useAuthStore.getState().setLoading(false);
+
+      try {
+        useAuthStore.getState().setUser(user);
+        if (user) {
+          await this.syncProfile(user);
+        }
+      } catch (error) {
+        console.error("Error during auth init:", error);
+        toast.error("Impossible de charger le profil. Mode hors-ligne actif ou erreur réseau.");
+      } finally {
+        useAuthStore.getState().setLoading(false);
+      }
     });
-  }
+    
+    return this._unsubscribeAuth;
+  },
 };

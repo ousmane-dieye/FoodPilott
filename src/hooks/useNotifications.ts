@@ -4,7 +4,7 @@ import { useAuthStore } from "../store/useAuthStore";
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
-  const isDemo = useAuthStore(s => s.isDemoMode);
+  const isDemo = useAuthStore((s) => s.isDemoMode);
 
   useEffect(() => {
     // In real mode, this would subscribe to Firestore 'notifications' collection
@@ -17,9 +17,9 @@ export function useNotifications() {
         title: "Nouvelle Alerte",
         body: "Un nouvel événement vient de se produire.",
         type: "info",
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      setNotifications(prev => [newNotif, ...prev]);
+      setNotifications((prev) => [newNotif, ...prev]);
     }, 120000);
 
     return () => clearInterval(interval);

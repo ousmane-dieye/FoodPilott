@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem } from '../types';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { CartItem, MenuItem } from "../types";
 
 interface CartState {
   items: CartItem[];
@@ -42,8 +42,8 @@ export const useCartStore = create<CartState>()(
       clearCart: () => set({ items: [], total: 0 }),
       total: 0,
     }),
-    { name: 'foodpilot-cart' }
-  )
+    { name: "foodpilot-cart" },
+  ),
 );
 
 function calculateTotal(items: CartItem[]) {

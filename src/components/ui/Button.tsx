@@ -3,19 +3,34 @@ import { cn } from "@/lib/utils";
 import { motion, HTMLMotionProps } from "motion/react";
 
 interface ButtonProps extends HTMLMotionProps<"button"> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg' | 'icon';
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg" | "icon";
   isLoading?: boolean;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', isLoading, children, ...props }, ref) => {
+  (
+    {
+      className,
+      variant = "primary",
+      size = "md",
+      isLoading,
+      children,
+      ...props
+    },
+    ref,
+  ) => {
     const variants = {
-      primary: "bg-primary text-white shadow-soft hover:bg-primary-dark hover:shadow-medium",
-      secondary: "bg-surface text-ink border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-soft",
-      outline: "border-2 border-primary text-primary hover:bg-primary hover:text-white hover:shadow-soft",
-      ghost: "text-ink-secondary hover:bg-gray-100 hover:text-ink ring-1 ring-transparent hover:ring-gray-200",
-      danger: "bg-red-500 text-white hover:bg-red-600 shadow-soft hover:shadow-medium",
+      primary:
+        "bg-primary text-white shadow-soft hover:bg-primary-dark hover:shadow-medium",
+      secondary:
+        "bg-surface text-ink border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-soft",
+      outline:
+        "border-2 border-primary text-primary hover:bg-primary hover:text-white hover:shadow-soft",
+      ghost:
+        "text-ink-secondary hover:bg-gray-100 hover:text-ink ring-1 ring-transparent hover:ring-gray-200",
+      danger:
+        "bg-red-500 text-white hover:bg-red-600 shadow-soft hover:shadow-medium",
     };
 
     const sizes = {
@@ -34,7 +49,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           "inline-flex items-center justify-center font-bold transition-all disabled:opacity-50 disabled:pointer-events-none relative overflow-hidden",
           variants[variant],
           sizes[size],
-          className
+          className,
         )}
         {...props}
       >
@@ -46,5 +61,5 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         <span className={cn(isLoading && "opacity-0")}>{children}</span>
       </motion.button>
     );
-  }
+  },
 );

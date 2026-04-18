@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Order } from '../types';
-import { OrderService } from '../services/orders';
-import { useAuthStore } from '../store/useAuthStore';
+import { useState, useEffect } from "react";
+import { Order } from "../types";
+import { OrderService } from "../services/orders";
+import { useAuthStore } from "../store/useAuthStore";
 
 export function useUserOrders() {
   const { user } = useAuthStore();
@@ -10,10 +10,13 @@ export function useUserOrders() {
 
   useEffect(() => {
     if (!user) return;
-    const unsubscribe = OrderService.subscribeToUserOrders(user.uid, (newOrders) => {
-      setOrders(newOrders);
-      setLoading(false);
-    });
+    const unsubscribe = OrderService.subscribeToUserOrders(
+      user.uid,
+      (newOrders) => {
+        setOrders(newOrders);
+        setLoading(false);
+      },
+    );
     return () => unsubscribe();
   }, [user]);
 
