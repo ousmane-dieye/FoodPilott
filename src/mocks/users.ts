@@ -6,6 +6,7 @@ export const MOCK_USERS: Record<string, UserProfile> = {
     email: "etudiant@esmt.sn",
     role: "STUDENT",
     displayName: "Ousmane Dieng",
+    points: 1250,
     allergies: ["Arachides"],
     createdAt: new Date().toISOString()
   },
@@ -14,6 +15,7 @@ export const MOCK_USERS: Record<string, UserProfile> = {
     email: "chef.omar@esmt.sn",
     role: "COOK",
     displayName: "Chef Omar",
+    points: 0,
     createdAt: new Date().toISOString()
   },
   demo_admin: {
@@ -21,6 +23,7 @@ export const MOCK_USERS: Record<string, UserProfile> = {
     email: "admin.fatou@esmt.sn",
     role: "ADMIN",
     displayName: "Fatou Admin",
+    points: 0,
     createdAt: new Date().toISOString()
   }
 };

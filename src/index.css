@@ -1,13 +1,110 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --color-primary: #00A86B; /* FoodPilot Vert */
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Custom Palette - Pure Light Mode */
+  --color-primary: #00A86B; /* Accent */
+  --color-primary-dark: #008f5a;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F3F4F6;
+  --color-background: #F9FAFB; /* Off-white secondary background */
+  --color-ink: #111827; /* Main text */
+  --color-ink-secondary: #4B5563; /* Secondary text */
+  --color-line: #E5E7EB;
+  
+  /* Shadows - Light and soft */
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-large: 0 16px 40px rgba(0, 0, 0, 0.12);
+
+  /* Radius */
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
 }
 
 @layer base {
   body {
-    @apply font-sans bg-gray-50 text-gray-900;
+    @apply font-sans bg-background text-ink antialiased leading-relaxed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight leading-tight text-ink;
+  }
+
+  h1 { @apply text-[32px] md:text-[36px] font-bold; }
+  h2 { @apply text-[28px] md:text-[32px] font-bold; }
+  h3 { @apply text-[24px] md:text-[28px] font-semibold; }
+  h4 { @apply text-[20px] md:text-[24px] font-semibold; }
+
+  p, span, div {
+    @apply text-base text-ink;
+  }
+}
+
+/* Custom Scrollbar */
+@layer utilities {
+  .text-xs {
+    font-size: 14px !important;
+  }
+  .text-[10px] {
+    font-size: 14px !important;
+  }
+  .text-[11px] {
+    font-size: 14px !important;
+  }
+  .text-[12px] {
+    font-size: 14px !important;
+  }
+  .text-sm {
+    font-size: 14px !important;
+  }
+  .text-base {
+    font-size: 16px !important;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-200 rounded-full hover:bg-gray-300 transition-colors;
+  }
+  
+  .text-secondary {
+    @apply text-ink-secondary text-[14px] md:text-[16px];
+  }
+  
+  .text-tiny {
+    @apply text-[14px];
+  }
+}
+
+/* Glassmorphism */
+.glass {
+  @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-soft;
+}
+
+/* Animations helpers */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }

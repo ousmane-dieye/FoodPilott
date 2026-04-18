@@ -1,100 +1,108 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    
-    // 0. Global Safety Net
-    match /{document=**} {
-      allow read, write: if false;
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Information about application users and their roles.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["ADMIN", "COOK", "STUDENT"] },
+        "displayName": { "type": "string" },
+        "allergies": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "MenuItem": {
+      "title": "Menu Item",
+      "description": "Dishes available in the restaurant.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "stock": { "type": "integer" },
+        "green": { "type": "boolean" },
+        "allergens": { "type": "array", "items": { "type": "string" } },
+        "rating": { "type": "number" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["name", "price", "stock"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer orders for food.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "items": { 
+          "type": "array", 
+          "items": {
+            "type": "object",
+            "properties": {
+              "itemId": { "type": "string" },
+              "name": { "type": "string" },
+              "quantity": { "type": "integer" },
+              "price": { "type": "number" }
+            }
+          }
+        },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "preparing", "ready", "completed", "cancelled"] },
+        "slot": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "items", "total", "status"]
+    },
+    "StockAlert": {
+      "title": "Stock Alert",
+      "description": "Alerts for low inventory.",
+      "type": "object",
+      "properties": {
+        "itemId": { "type": "string" },
+        "name": { "type": "string" },
+        "currentStock": { "type": "integer" },
+        "minStock": { "type": "integer" }
+      }
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Customer comments and ratings for menu items.",
+      "type": "object",
+      "properties": {
+        "menuId": { "type": "string" },
+        "userId": { "type": "string" },
+        "rating": { "type": "number", "minimum": 1, "maximum": 5 },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["menuId", "userId", "rating"]
     }
-
-    // --- REUSABLE HELPERS ---
-    
-    function isSignedIn() { return request.auth != null; }
-    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
-    function getUserData() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
-    function getRole() { return getUserData().role; }
-    
-    function isAdmin() { return isVerified() && getRole() == 'ADMIN'; }
-    function isCook() { return isVerified() && getRole() == 'COOK'; }
-    function isStudent() { return isVerified() && getRole() == 'STUDENT'; }
-    
-    function isOwner(userId) { return isVerified() && request.auth.uid == userId; }
-    function incoming() { return request.resource.data; }
-    function existing() { return resource.data; }
-    
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
-    
-    // --- VALIDATION BLUEPRINTS ---
-
-    function isValidUser(data) {
-      return data.uid == request.auth.uid 
-        && data.email is string && data.email.size() <= 100
-        && data.displayName is string && data.displayName.size() <= 100
-        && data.role in ['STUDENT', 'CLIENT'] // Users can only self-assign STUDENT or CLIENT on create
-        && data.keys().hasAll(['uid', 'email', 'role', 'displayName'])
-        && (data.role != 'STUDENT' || (data.firstName is string && data.lastName is string))
-        && (data.role != 'CLIENT' || (data.fullName is string))
-        && data.keys().size() <= 15;
-    }
-
-    function isValidOrder(data) {
-      return data.userId == request.auth.uid
-        && data.items is list && data.items.size() > 0 && data.items.size() <= 20
-        && data.total is number && data.total > 0
-        && data.status in ['pending', 'preparing', 'ready', 'completed', 'cancelled']
-        && data.keys().hasAll(['userId', 'items', 'total', 'status'])
-        && data.keys().size() <= 10;
-    }
-
-    // --- COLLECTIONS ---
-
-    // 1. USERS: RBAC & Profiles
-    match /users/{userId} {
-      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin() || isCook());
-      allow list: if isAdmin();
-      
-      // CREATE: 
-      // - STUDENT: Self-service registration (Role must be STUDENT)
-      // - ADMIN: Can create any user (e.g., COOK)
-      allow create: if (isOwner(userId) && isValidUser(incoming()) && incoming().createdAt == request.time)
-        || isAdmin();
-        
-      // UPDATE: 
-      // - OWNER: Can change display name/allergies, but NOT role
-      // - ADMIN: Full control
-      allow update: if isValidId(userId) && (
-        (isOwner(userId) && incoming().role == existing().role 
-          && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'firstName', 'lastName', 'fullName', 'phoneNumber', 'allergies', 'otherAllergies', 'photoURL', 'updatedAt'])
-          && incoming().updatedAt == request.time)
-        || isAdmin()
-      );
-    }
-
-    // 2. MENUS: Public Read, Admin Write
-    match /menuItems/{menuId} {
-      allow read: if isValidId(menuId) && isSignedIn();
-      allow write: if isValidId(menuId) && isAdmin();
-    }
-
-    // 3. ORDERS: Relational Access
-    match /orders/{orderId} {
-      allow get: if isValidId(orderId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || isCook());
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || isCook());
-      
-      allow create: if isStudent() && isValidOrder(incoming()) 
-        && incoming().createdAt == request.time;
-        
-      allow update: if isValidId(orderId) && (
-        (isOwner(existing().userId) && existing().status == 'pending' && incoming().status == 'cancelled'
-          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
-        ||
-        ((isCook() || isAdmin()) && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
-      ) && incoming().updatedAt == request.time;
-    }
-
-    // 4. STOCK ALERTS: Cook & Admin
-    match /stockAlerts/{alertId} {
-      allow read, write: if isCook() || isAdmin();
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and RBAC data."
+    },
+    "/menus/{menuId}": {
+      "schema": "MenuItem",
+      "description": "Main restaurant menu."
+    },
+    "/menus/{menuId}/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Reviews for a specific menu item."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer order history and active queue."
+    },
+    "/stockAlerts/{alertId}": {
+      "schema": "StockAlert",
+      "description": "Real-time stock monitoring alerts."
     }
   }
 }

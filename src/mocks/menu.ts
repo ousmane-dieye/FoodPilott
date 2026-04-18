@@ -10,6 +10,7 @@ export const MOCK_MENU: MenuItem[] = [
     stock: 25,
     green: true,
     rating: 4.9,
+    reviewCount: 124,
     imageUrl: "https://picsum.photos/seed/thieb/400/300",
     allergens: ["Poisson"]
   },
@@ -21,6 +22,7 @@ export const MOCK_MENU: MenuItem[] = [
     category: "Sénégalais",
     stock: 40,
     rating: 4.7,
+    reviewCount: 89,
     imageUrl: "https://picsum.photos/seed/yassa/400/300",
     allergens: ["Moutarde"]
   },
@@ -32,6 +34,7 @@ export const MOCK_MENU: MenuItem[] = [
     category: "Sénégalais",
     stock: 15,
     rating: 4.8,
+    reviewCount: 56,
     imageUrl: "https://picsum.photos/seed/mafe/400/300",
     allergens: ["Arachides"]
   },
@@ -43,6 +46,7 @@ export const MOCK_MENU: MenuItem[] = [
     category: "Sénégalais",
     stock: 12,
     rating: 4.5,
+    reviewCount: 34,
     imageUrl: "https://picsum.photos/seed/thiou/400/300"
   },
   {
@@ -53,6 +57,7 @@ export const MOCK_MENU: MenuItem[] = [
     category: "Classic",
     stock: 10,
     rating: 4.9,
+    reviewCount: 210,
     imageUrl: "https://picsum.photos/seed/dibi/400/300"
   },
   {
@@ -64,6 +69,7 @@ export const MOCK_MENU: MenuItem[] = [
     stock: 30,
     green: true,
     rating: 4.4,
+    reviewCount: 45,
     imageUrl: "https://picsum.photos/seed/veggie/400/300"
   },
   {
@@ -74,6 +80,7 @@ export const MOCK_MENU: MenuItem[] = [
     category: "Classic",
     stock: 50,
     rating: 4.2,
+    reviewCount: 150,
     imageUrl: "https://picsum.photos/seed/sandwich/400/300"
   },
   {
@@ -84,6 +91,7 @@ export const MOCK_MENU: MenuItem[] = [
     category: "Dessert",
     stock: 100,
     rating: 4.9,
+    reviewCount: 300,
     imageUrl: "https://picsum.photos/seed/bissap/400/300"
   },
   {
@@ -94,6 +102,7 @@ export const MOCK_MENU: MenuItem[] = [
     category: "Dessert",
     stock: 45,
     rating: 4.8,
+    reviewCount: 67,
     imageUrl: "https://picsum.photos/seed/degue/400/300",
     allergens: ["Lactose"]
   },
@@ -105,6 +114,7 @@ export const MOCK_MENU: MenuItem[] = [
     category: "Dessert",
     stock: 200,
     rating: 5.0,
+    reviewCount: 450,
     imageUrl: "https://picsum.photos/seed/touba/400/300"
   }
 ];
@@ -119,6 +129,7 @@ export const MOCK_ANTI_GASPI: MenuItem[] = [
     stock: 5,
     green: true,
     rating: 4.9,
+    reviewCount: 15,
     imageUrl: "https://picsum.photos/seed/waste/400/300"
   }
 ];

@@ -77,6 +77,20 @@ service cloud.firestore {
     match /menuItems/{menuId} {
       allow read: if isValidId(menuId) && isSignedIn();
       allow write: if isValidId(menuId) && isAdmin();
+      
+      // REVIEWS for a menu item
+      match /reviews/{reviewId} {
+        allow read: if isSignedIn();
+        allow create: if isStudent()
+          && incoming().userId == request.auth.uid
+          && incoming().menuId == menuId
+          && incoming().rating is number
+          && incoming().rating >= 1 && incoming().rating <= 5
+          && (incoming().comment is string && incoming().comment.size() <= 1000)
+          && incoming().createdAt == request.time
+          && incoming().keys().hasAll(['userId', 'menuId', 'rating', 'comment', 'createdAt'])
+          && incoming().keys().size() <= 6;
+      }
     }
 
     // 3. ORDERS: Relational Access

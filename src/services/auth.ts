@@ -64,6 +64,7 @@ export const AuthService = {
         phoneNumber: data.phone,
         allergies: data.allergies,
         otherAllergies: data.otherAllergies,
+        points: 0,
         createdAt: serverTimestamp(),
       };
       
@@ -96,6 +97,7 @@ export const AuthService = {
         fullName: data.fullName,
         displayName: data.fullName,
         phoneNumber: data.phone,
+        points: 0,
         createdAt: serverTimestamp(),
       };
       
@@ -157,13 +159,15 @@ export const AuthService = {
       uid: `demo_${role.toLowerCase()}`,
       email: `demo@${role.toLowerCase()}.com`,
       displayName: `Demo ${role}`,
-    } as User;
+      getIdToken: async () => `demo_token_${role.toLowerCase()}`
+    } as any; // Cast as any to include mock method
 
     const mockProfile: UserProfile = {
       uid: mockUser.uid,
       email: mockUser.email!,
       role,
       displayName: mockUser.displayName!,
+      points: role === 'STUDENT' ? 1250 : 0,
       createdAt: new Date().toISOString(),
     };
 
@@ -208,6 +212,7 @@ export const AuthService = {
           firstName,
           lastName,
           displayName: user.displayName || `${firstName} ${lastName}`,
+          points: 0,
           createdAt: serverTimestamp(),
         };
         

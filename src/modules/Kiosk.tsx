@@ -1,164 +1,190 @@
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { 
-  QrCode, 
-  CircleCheck, 
+  Utensils, 
+  ShoppingBag, 
+  ArrowRight, 
+  Sparkles, 
   Clock, 
-  AlertCircle,
-  Users,
-  Utensils
+  Plus, 
+  Minus,
+  CheckCircle2,
+  ChevronLeft
 } from "lucide-react";
-import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
+import { cn } from "../lib/utils";
 
-import { useAuthStore } from "../store/useAuthStore";
-import { MOCK_TABLES } from "../mocks/simulation";
+// UI Components
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { Badge } from "../components/ui/Badge";
+
+const menu = [
+  { id: 1, name: "Menu Thieboudienne", price: 2500, img: "https://picsum.photos/seed/th/400/400" },
+  { id: 2, name: "Menu Burger Pilot", price: 3500, img: "https://picsum.photos/seed/bg/400/400" },
+  { id: 3, name: "Menu Yassa Poulet", price: 2800, img: "https://picsum.photos/seed/ys/400/400" },
+  { id: 4, name: "Menu Salade César", price: 2200, img: "https://picsum.photos/seed/sl/400/400" },
+];
 
 export default function Kiosk() {
-  const { isDemoMode } = useAuthStore();
-  const [scanState, setScanState] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
+  const [view, setView] = useState<'welcome' | 'order' | 'checkout' | 'success'>('welcome');
+  const [cart, setCart] = useState<Record<number, number>>({});
+
+  const cartValues = Object.values(cart) as number[];
+  const cartCount = cartValues.reduce((a, b) => a + b, 0);
   
-  const tables = isDemoMode ? MOCK_TABLES : [];
-  const occupiedCount = tables.filter(t => t.status === 'occupée').length;
-  const occupancyRate = tables.length > 0 ? Math.round((occupiedCount / tables.length) * 100) : 78;
-  const waitingTime = isDemoMode ? "8 MIN" : "12 MIN";
-  const availableTable = isDemoMode ? tables.find(t => t.status === 'libre')?.number : 14;
-  const [time, setTime] = useState(new Date());
+  const total = Object.entries(cart).reduce((sum, [id, qty]) => {
+    const item = menu.find(it => it.id === Number(id));
+    return sum + ((item?.price || 0) * (qty as number));
+  }, 0);
 
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const updateCart = (id: number, delta: number) => {
+    setCart(prev => {
+      const news = { ...prev };
+      const currentQty = (news[id] as number) || 0;
+      news[id] = currentQty + delta;
+      if (news[id] <= 0) delete news[id];
+      return news;
+    });
+  };
 
-  const simulateScan = () => {
-    setScanState('scanning');
-    setTimeout(() => {
-      setScanState('success');
-      setTimeout(() => setScanState('idle'), 5000);
-    }, 1500);
+  const handleCheckout = () => {
+    setView('checkout');
+    setTimeout(() => setView('success'), 2000);
   };
 
   return (
-    <div className="max-w-4xl mx-auto h-[700px] bg-black rounded-[40px] border-[12px] border-gray-800 p-8 flex flex-col text-white shadow-2xl relative overflow-hidden">
-       {/* UI Glow Background */}
-       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[100px] -z-10" />
-       
-       <header className="flex justify-between items-start mb-12">
-          <div>
-             <h1 className="text-5xl font-black text-primary tracking-tighter">FoodPilot</h1>
-             <p className="text-gray-500 font-bold uppercase tracking-widest text-xs mt-2">Borne de Validation Inteligente</p>
-          </div>
-          <div className="text-right">
-             <p className="text-4xl font-black tracking-tight">{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-             <p className="text-sm font-medium text-gray-400 capitalize">{time.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-          </div>
-       </header>
-
-       <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          
-          <div className="space-y-8">
-             <div className="p-8 bg-gray-900/50 backdrop-blur-xl border border-gray-800 rounded-4xl flex items-center justify-between group overflow-hidden relative">
-                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative z-10">
-                   <p className="text-gray-400 text-xs font-bold uppercase mb-2">Occupation actuelle</p>
-                   <p className="text-5xl font-black text-primary">{occupancyRate}%</p>
-                </div>
-                <Users size={64} className="text-gray-800 -rotate-12 group-hover:text-primary/20 transition-colors" />
+    <div className="fixed inset-0 z-[200] bg-background text-ink flex flex-col font-sans overflow-hidden">
+      <AnimatePresence mode="wait">
+        {view === 'welcome' && (
+          <motion.div 
+            key="welcome"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 flex flex-col items-center justify-center p-12 text-center"
+            onClick={() => setView('order')}
+          >
+             <div className="w-40 h-40 bg-primary text-white rounded-[56px] flex items-center justify-center shadow-large mb-12 animate-bounce">
+                <Utensils size={80} />
              </div>
-
-             <div className="p-8 bg-primary rounded-4xl text-white shadow-2xl shadow-primary/20">
-                <div className="flex gap-4 items-center">
-                   <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
-                      <Clock size={32} />
-                   </div>
-                   <div>
-                      <h3 className="text-xl font-black uppercase tracking-tight">Temps d'attente</h3>
-                      <p className="text-4xl font-black leading-none">{waitingTime}</p>
-                   </div>
-                </div>
+             <h1 className="text-8xl font-black tracking-tightest mb-4 italic">FoodPilot Kiosk</h1>
+             <p className="text-2xl text-gray-400 font-bold mb-16 uppercase tracking-widest">Touchez pour démarrer votre commande</p>
+             <div className="flex gap-4">
+                <Badge variant="primary" className="px-6 py-2 text-lg">Commande Express</Badge>
+                <Badge variant="secondary" className="px-6 py-2 text-lg">Paiement Flow</Badge>
              </div>
-          </div>
+          </motion.div>
+        )}
 
-          <div className="relative flex flex-col items-center">
-             <AnimatePresence mode="wait">
-                {scanState === 'idle' && (
-                  <motion.div 
-                    key="idle"
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 1.1, opacity: 0 }}
-                    className="flex flex-col items-center gap-6"
-                  >
-                     <div 
-                        onClick={simulateScan}
-                        className="w-64 h-64 bg-gray-900 border-4 border-dashed border-gray-700 rounded-5xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-primary transition-colors group"
-                     >
-                        <QrCode size={80} className="text-gray-600 group-hover:text-primary transition-all duration-500 group-hover:scale-110" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-primary transition-colors">Scanner pour valider</span>
-                     </div>
-                     <div className="bg-orange-500/10 border border-orange-500/20 px-6 py-3 rounded-2xl text-orange-400 text-sm font-bold flex items-center gap-2">
-                        <AlertCircle size={18} /> Rappel : Commande en ligne prioritaire
-                     </div>
-                  </motion.div>
-                )}
+        {view === 'order' && (
+          <motion.div 
+            key="order"
+            initial={{ x: 1000 }}
+            animate={{ x: 0 }}
+            exit={{ x: -1000 }}
+            className="flex-1 flex flex-col h-full"
+          >
+            <header className="p-12 pb-6 flex justify-between items-center bg-surface border-b border-gray-50">
+               <div className="flex items-center gap-6">
+                  <Button variant="ghost" size="icon" onClick={() => setView('welcome')} className="w-16 h-16 rounded-3xl">
+                     <ChevronLeft size={40} />
+                  </Button>
+                  <h2 className="text-5xl font-black tracking-tightest italic">Choisissez votre Menu</h2>
+               </div>
+               <div className="flex items-center gap-4">
+                  <div className="text-right">
+                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Heure Locale</p>
+                     <p className="text-2xl font-black font-mono">12:30</p>
+                  </div>
+                  <Clock className="text-primary" size={32} />
+               </div>
+            </header>
 
-                {scanState === 'scanning' && (
-                  <motion.div 
-                    key="scanning"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex flex-col items-center gap-8"
-                  >
-                     <div className="w-64 h-64 bg-gray-900 border-4 border-primary rounded-5xl flex items-center justify-center relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-[2px] bg-primary shadow-[0_0_15px_#00A86B] animate-scan" />
-                        <QrCode size={80} className="text-primary opacity-50" />
-                     </div>
-                     <p className="text-2xl font-black animate-pulse uppercase tracking-widest tracking-tighter">ANALYSE EN COURS...</p>
-                  </motion.div>
-                )}
+            <div className="flex-1 p-12 grid grid-cols-2 gap-12 overflow-y-auto custom-scrollbar">
+               {menu.map((item) => (
+                 <Card key={item.id} className="p-0 overflow-hidden border-none shadow-medium group relative active:scale-95 transition-transform">
+                    <div className="h-80 overflow-hidden">
+                       <img src={item.img} className="w-full h-full object-cover" alt={item.name} />
+                    </div>
+                    <div className="p-10 flex justify-between items-center bg-surface">
+                       <div>
+                          <h3 className="text-3xl font-black text-ink tracking-tighter mb-2">{item.name}</h3>
+                          <p className="text-2xl font-black text-primary">{item.price} F</p>
+                       </div>
+                       <div className="flex items-center gap-6">
+                          {((cart[item.id] as number) || 0) > 0 ? (
+                             <div className="flex items-center gap-8 bg-background rounded-3xl p-2 ring-2 ring-primary/20">
+                                <button onClick={() => updateCart(item.id, -1)} className="w-16 h-16 flex items-center justify-center rounded-2xl bg-surface shadow-soft text-ink hover:bg-gray-100 transition-colors"><Minus size={32}/></button>
+                                <span className="text-4xl font-black text-ink">{cart[item.id]}</span>
+                                <button onClick={() => updateCart(item.id, 1)} className="w-16 h-16 flex items-center justify-center rounded-2xl bg-primary text-white shadow-soft hover:bg-primary-dark transition-colors"><Plus size={32}/></button>
+                             </div>
+                          ) : (
+                             <Button onClick={() => updateCart(item.id, 1)} className="w-24 h-24 rounded-full bg-ink text-white font-black text-4xl leading-none">
+                                <Plus size={40} />
+                             </Button>
+                          )}
+                       </div>
+                    </div>
+                 </Card>
+               ))}
+            </div>
 
-                {scanState === 'success' && (
-                  <motion.div 
-                    key="success"
-                    initial={{ opacity: 0, scale: 1.2 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="flex flex-col items-center gap-8"
-                  >
-                     <div className="w-64 h-64 bg-primary rounded-full flex items-center justify-center shadow-[0_0_60px_rgba(0,168,107,0.4)]">
-                        <CircleCheck size={120} className="text-white" />
-                     </div>
-                     <div className="text-center">
-                        <p className="text-3xl font-black uppercase tracking-tight leading-none mb-1">DÉGUSTEZ BIEN !</p>
-                        <p className="text-gray-400 text-lg font-bold">Votre plateau est validé</p>
-                        <div className="mt-4 flex items-center justify-center gap-2 text-primary font-black">
-                           <Utensils size={20} /> TABLE #{availableTable} DISPONIBLE
+            {cartCount > 0 && (
+               <motion.div 
+                 initial={{ y: 200 }}
+                 animate={{ y: 0 }}
+                 className="p-12 pb-20 bg-surface border-t border-gray-100"
+               >
+                  <div className="max-w-4xl mx-auto flex items-center justify-between">
+                     <div className="flex items-center gap-8">
+                        <div className="w-24 h-24 rounded-[32px] bg-primary/10 text-primary flex items-center justify-center font-black text-4xl">
+                           {cartCount}
+                        </div>
+                        <div>
+                           <p className="text-xl font-bold text-gray-400 uppercase tracking-widest">Total Panier</p>
+                           <h4 className="text-6xl font-black tracking-tightest">{total} F</h4>
                         </div>
                      </div>
-                  </motion.div>
-                )}
-             </AnimatePresence>
-          </div>
-       </div>
+                     <Button onClick={handleCheckout} className="h-28 px-16 rounded-[40px] text-4xl font-black shadow-large group">
+                        Payer <ArrowRight className="ml-4 group-hover:translate-x-4 transition-transform" size={40} />
+                     </Button>
+                  </div>
+               </motion.div>
+            )}
+          </motion.div>
+        )}
 
-       <footer className="mt-auto flex justify-between items-center pt-8 border-t border-gray-800">
-          <p className="text-[10px] text-gray-500 font-bold tracking-[0.2em] uppercase">Powered by FoodPilot Intelligence Unit</p>
-          <div className="flex gap-4">
-             <div className="w-8 h-8 bg-gray-800 rounded-lg" />
-             <div className="w-8 h-8 bg-gray-800 rounded-lg" />
-          </div>
-       </footer>
+        {view === 'checkout' && (
+           <motion.div 
+              key="checkout"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-primary text-white"
+           >
+              <div className="w-48 h-48 border-8 border-white/20 border-t-white rounded-full animate-spin mb-12 shadow-large" />
+              <h2 className="text-7xl font-black tracking-tightest mb-4 italic">Traitement du Paiement</h2>
+              <p className="text-2xl font-bold opacity-60 uppercase tracking-widest italic animate-pulse">Veuillez patienter...</p>
+           </motion.div>
+        )}
 
-       <style>{`
-          @keyframes scan {
-            0% { top: 0; }
-            50% { top: 100%; }
-            100% { top: 0; }
-          }
-          .animate-scan {
-            animation: scan 2s linear infinite;
-          }
-       `}</style>
+        {view === 'success' && (
+           <motion.div 
+              key="success"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-background"
+           >
+              <div className="w-64 h-64 bg-emerald-500 text-white rounded-[64px] flex items-center justify-center shadow-large mb-12">
+                 <CheckCircle2 size={120} />
+              </div>
+              <h2 className="text-8xl font-black tracking-tightest mb-4 italic text-ink text-primary">Merci !</h2>
+              <p className="text-3xl font-black text-ink tracking-tighter mb-16">Votre commande #A-42 est en cours de préparation.</p>
+              <Button onClick={() => { setCart({}); setView('welcome'); }} className="h-24 px-16 rounded-[32px] text-3xl font-black">
+                 Terminer
+              </Button>
+           </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

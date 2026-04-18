@@ -1,59 +1,51 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { 
   User, 
   ChefHat, 
   BarChart3, 
-  ChevronRight, 
   Mail, 
   Lock, 
   ArrowRight, 
   Play,
   ShieldCheck,
   Zap,
-  Sparkles
+  Sparkles,
+  ChevronRight,
+  Sun,
+  Moon
 } from "lucide-react";
-import { cn } from "../lib/utils";
-import { AuthService } from "../services/auth";
-import { useAuthStore } from "../store/useAuthStore";
-import { UserRole } from "../types";
+import { cn } from "@/lib/utils";
+import { AuthService } from "@/services/auth";
+import { useAuthStore } from "@/store/useAuthStore";
+import { UserRole } from "@/types";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
+import { useTheme } from "@/context/ThemeContext";
+
+// UI Components
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
 
 export default function Landing() {
-  const { user, isDemoMode } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
   const [authView, setAuthView] = useState<'login' | 'register-student' | 'register-client' | 'forgot'>('login');
   const [loading, setLoading] = useState(false);
   
-  // Registration data
   const [studentData, setStudentData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phone: '',
-    allergies: [] as string[],
-    otherAllergies: ''
+    firstName: '', lastName: '', email: '', password: '', confirmPassword: '', phone: '', allergies: [] as string[], otherAllergies: ''
   });
 
   const [clientData, setClientData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phone: ''
+    fullName: '', email: '', password: '', confirmPassword: '', phone: ''
   });
 
-  const [loginData, setLoginData] = useState({
-    email: '',
-    password: ''
-  });
+  const [loginData, setLoginData] = useState({ email: '', password: '' });
 
-  const allergyOptions = [
-    'arachides', 'lactose', 'gluten', 'fruits de mer', 'œufs', 'soja'
-  ];
+  const allergyOptions = ['arachides', 'lactose', 'gluten', 'fruits de mer', 'œufs', 'soja'];
 
   const handleDemoMode = async (role: UserRole) => {
     try {
@@ -70,7 +62,7 @@ export default function Landing() {
       case 'ADMIN': navigate('/admin/stats'); break;
       case 'COOK': navigate('/kitchen/ops'); break;
       case 'STUDENT': navigate('/student/order'); break;
-      case 'CLIENT': navigate('/student/order'); break; // Clients use same student interface for now or specific CustomerApp
+      case 'CLIENT': navigate('/student/order'); break;
       default: navigate('/');
     }
   };
@@ -98,7 +90,7 @@ export default function Landing() {
           allergies: studentData.allergies,
           otherAllergies: studentData.otherAllergies
         });
-        toast.success("Compte étudiant créé avec succès !");
+        toast.success("Compte étudiant créé !");
         navigate('/student/order');
       } else if (authView === 'register-client') {
         if (clientData.password !== clientData.confirmPassword) {
@@ -110,7 +102,7 @@ export default function Landing() {
           fullName: clientData.fullName,
           phone: clientData.phone
         });
-        toast.success("Compte client créé avec succès !");
+        toast.success("Bienvenue chez FoodPilot !");
         navigate('/student/order');
       } else {
         await AuthService.resetPassword(loginData.email);
@@ -118,376 +110,223 @@ export default function Landing() {
         setAuthView('login');
       }
     } catch (error: any) {
-      // If the error was already handled by AuthService (toast shown), we just stop
-      // If it's a local error (like password mismatch), we show it here
-      if (error.message && !error.code) {
-        toast.error(error.message);
-      }
+      if (error.message && !error.code) toast.error(error.message);
     } finally {
       setLoading(false);
     }
   };
 
   const demoCards = [
-    {
-      role: 'STUDENT' as UserRole,
-      title: 'Étudiant (Test)',
-      desc: 'Simuler l\'interface étudiant instantanément',
-      icon: User,
-      color: 'bg-emerald-500',
-      shadow: 'shadow-emerald-200'
-    },
-    {
-      role: 'COOK' as UserRole,
-      title: 'Cuisine (Test)',
-      desc: 'Accès rapide aux outils de production',
-      icon: ChefHat,
-      color: 'bg-orange-500',
-      shadow: 'shadow-orange-200'
-    },
-    {
-      role: 'ADMIN' as UserRole,
-      title: 'Admin (Test)',
-      desc: 'Vue d\'ensemble et analytics pilotage',
-      icon: BarChart3,
-      color: 'bg-blue-600',
-      shadow: 'shadow-blue-200'
-    }
+    { role: 'STUDENT' as UserRole, title: 'Étudiant', desc: 'Commander, Fidélité, IA Nutrition', icon: User, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+    { role: 'COOK' as UserRole, title: 'Cuisinier', desc: 'Gestion Kitchen, Commandes, IA Recettes', icon: ChefHat, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-500/10' },
+    { role: 'ADMIN' as UserRole, title: 'Admin', desc: 'Analytics, Stocks, Pilotage Global', icon: BarChart3, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' }
   ];
 
+  if (user) {
+    // If logged in, show a simple welcome back screen instead of the landing
+    return (
+       <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+          <Card className="max-w-md w-full text-center p-12">
+             <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-8 text-primary shadow-soft">
+                <Sparkles size={40} />
+             </div>
+             <h2 className="text-3xl font-black tracking-tighter text-ink mb-2">Bienvenue</h2>
+             <p className="text-gray-400 font-medium mb-8">Voulez-vous retourner à votre interface de pilotage ?</p>
+             <div className="space-y-3">
+                <Button onClick={() => redirectByRole(useAuthStore.getState().profile?.role || 'STUDENT')} className="w-full">
+                  Accéder au Pilotage
+                </Button>
+                <Button variant="ghost" onClick={() => AuthService.logout()} className="w-full">
+                  Déconnexion
+                </Button>
+             </div>
+          </Card>
+       </div>
+    );
+  }
+
   return (
-    <div className="min-h-[calc(100vh-140px)] flex flex-col items-center justify-center py-12 px-4">
-      {/* Header Info */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-12 space-y-4 max-w-2xl"
-      >
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-          <Sparkles size={12} />
-          Innovation ESMT 2026
-        </div>
-        <h1 className="text-5xl md:text-6xl font-black text-gray-900 tracking-tighter leading-none">
-          FoodPilot <br/>
-          <span className="text-gray-300 italic font-serif">Hybrid Pilot</span>
-        </h1>
-        <p className="text-gray-400 font-medium">
-          Connectez-vous à votre espace personnel ou testez instantanément l'interface en mode démonstration.
-        </p>
-      </motion.div>
+    <div className="min-h-screen bg-background relative overflow-hidden flex flex-col items-center justify-center py-20 px-6">
+      {/* Background blobs */}
+      <div className="absolute top-0 -left-20 w-96 h-96 bg-primary/10 rounded-full blur-[100px] animate-pulse" />
+      <div className="absolute bottom-0 -right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }} />
 
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-        
-        {/* Left Side: Demo Mode */}
-        <motion.div 
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="space-y-8"
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center">
-              <Play size={20} fill="currentColor" />
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-gray-900 tracking-tight">Accès Rapide (Hackathon)</h2>
-              <p className="text-sm text-gray-400 font-medium italic">Testez sans authentification</p>
-            </div>
+      <header className="fixed top-0 left-0 right-0 p-8 flex justify-between items-center z-50">
+        <div className="flex items-center gap-2 group">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-soft transition-transform group-hover:rotate-12">
+            <Sparkles size={24} />
           </div>
+          <h1 className="text-2xl font-black tracking-tighter text-ink">FoodPilot</h1>
+        </div>
+        <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full">
+           {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+        </Button>
+      </header>
 
-          <div className="grid grid-cols-1 gap-4">
-            {demoCards.map((card, idx) => (
-              <motion.button
-                key={card.role}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.1 }}
-                onClick={() => handleDemoMode(card.role)}
-                className={cn(
-                  "group relative flex items-center gap-6 p-6 rounded-[32px] bg-white border border-gray-100 shadow-xl transition-all hover:scale-[1.02] hover:shadow-2xl hover:border-emerald-100 text-left overflow-hidden"
-                )}
-              >
-                <div className={cn(
-                  "w-16 h-16 rounded-[24px] flex items-center justify-center text-white shrink-0 group-hover:rotate-6 transition-transform shadow-lg",
-                  card.color,
-                  card.shadow
-                )}>
-                  <card.icon size={28} />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-black text-gray-900 tracking-tight">{card.title}</h3>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-tight mb-2 opacity-60">Rôle : {card.role}</p>
-                  <p className="text-sm text-gray-400 font-medium leading-tight">{card.desc}</p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-emerald-50 group-hover:text-emerald-500 transition-colors">
-                  <ArrowRight size={20} />
-                </div>
-                <div className={cn(
-                  "absolute -bottom-10 -right-10 w-24 h-24 rounded-full blur-3xl opacity-0 group-hover:opacity-10 transition-opacity",
-                  card.color
-                )} />
-              </motion.button>
-            ))}
+      <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-16 items-center z-10">
+        <motion.div
+           initial={{ opacity: 0, x: -60 }}
+           animate={{ opacity: 1, x: 0 }}
+           transition={{ duration: 0.8, ease: "easeOut" }}
+           className="space-y-8"
+        >
+          <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-primary/10 text-primary text-sm font-bold uppercase tracking-wider border border-primary/20">
+            <Sparkles size={16} /> Innovation ESMT 2026
           </div>
           
-          <div className="bg-emerald-50/50 border border-emerald-100 p-6 rounded-[32px] flex items-start gap-4">
-             <div className="w-10 h-10 shrink-0 bg-white rounded-xl shadow-sm border border-emerald-100 flex items-center justify-center text-emerald-500">
-                <Zap size={20} />
+          <h1 className="text-7xl md:text-9xl font-black text-ink tracking-tightest leading-[0.85] uppercase italic">
+            The New Era <br/>
+            <span className="text-primary not-italic">of Dining.</span>
+          </h1>
+          
+          <p className="text-2xl text-ink-secondary font-bold max-w-lg leading-relaxed opacity-100 italic">
+            FoodPilot redéfinit l'expérience culinaire universitaire à l'ESMT. Une plateforme intelligente pour les étudiants, les cuisiniers et les gestionnaires.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+             {demoCards.map((card, i) => (
+                <motion.button
+                  key={card.role}
+                  whileHover={{ y: -5, shadow: "var(--shadow-medium)" }}
+                  onClick={() => handleDemoMode(card.role)}
+                  className={cn(
+                    "flex flex-col items-center gap-3 p-6 rounded-[32px] border border-gray-100 dark:border-slate-800 bg-surface/50 backdrop-blur-md text-center transition-all",
+                    "hover:border-primary/30"
+                  )}
+                >
+                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-soft", card.bg, card.color)}>
+                     <card.icon size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base text-ink">{card.title}</h3>
+                    <p className="text-sm font-bold text-ink-secondary uppercase tracking-wide">Mode Démo</p>
+                  </div>
+                </motion.button>
+             ))}
+          </div>
+
+          <div className="flex items-center gap-6 pt-6">
+             <div className="flex -space-x-3">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="w-10 h-10 rounded-full border-4 border-background bg-gray-200 overflow-hidden ring-1 ring-primary/20">
+                     <img src={`https://i.pravatar.cc/150?u=${i}`} alt="Avatar" />
+                  </div>
+                ))}
              </div>
-             <p className="text-[13px] text-emerald-800 font-medium leading-relaxed">
-               <strong>Note :</strong> Le mode démo bypass l'authentification réelle. Idéal pour les présentations rapides. Les données peuvent être persistées via Firestore si configuré.
+             <p className="text-sm font-bold text-ink">
+               <span className="text-primary">+500 étudiants</span> déjà connectés au pilotage.
              </p>
           </div>
         </motion.div>
 
-        {/* Right Side: Auth Form */}
-        <motion.div 
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white p-10 rounded-[48px] border border-gray-100 shadow-2xl relative overflow-hidden"
+        <motion.div
+           initial={{ opacity: 0, x: 60 }}
+           animate={{ opacity: 1, x: 0 }}
+           transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
         >
-          <div className="absolute top-0 right-0 p-8 text-gray-100 -mr-8 -mt-8">
-            <Lock size={120} />
-          </div>
-
-          <div className="relative">
-            <h2 className="text-3xl font-black text-gray-900 tracking-tighter mb-2">Authentification</h2>
-            <p className="text-sm text-gray-400 font-medium mb-8">Accès sécurisé FoodPilot Network</p>
-
-            <form onSubmit={handleAuth} className="space-y-4">
-              {authView === 'login' || authView === 'forgot' ? (
-                <>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">E-mail</label>
-                    <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-                      <input 
-                        type="email" 
-                        required
-                        value={loginData.email}
-                        onChange={(e) => setLoginData({...loginData, email: e.target.value})}
-                        placeholder="votre.email@domaine.com"
-                        className="w-full bg-gray-50 border-none rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {authView === 'login' && (
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Mot de passe</label>
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-                        <input 
-                          type="password" 
-                          required
-                          value={loginData.password}
-                          onChange={(e) => setLoginData({...loginData, password: e.target.value})}
-                          placeholder="••••••••"
-                          className="w-full bg-gray-50 border-none rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : authView === 'register-student' ? (
-                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Prénom</label>
-                      <input 
-                        type="text" required
-                        value={studentData.firstName}
-                        onChange={(e) => setStudentData({...studentData, firstName: e.target.value})}
-                        className="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 text-sm font-bold"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nom</label>
-                      <input 
-                        type="text" required
-                        value={studentData.lastName}
-                        onChange={(e) => setStudentData({...studentData, lastName: e.target.value})}
-                        className="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 text-sm font-bold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email (@esmt.sn recommandé)</label>
-                    <input 
-                      type="email" required
-                      value={studentData.email}
-                      onChange={(e) => setStudentData({...studentData, email: e.target.value})}
-                      placeholder="nom.prenom@esmt.sn"
-                      className="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 text-sm font-bold"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Mot de passe</label>
-                      <input 
-                        type="password" required
-                        value={studentData.password}
-                        onChange={(e) => setStudentData({...studentData, password: e.target.value})}
-                        className="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 text-sm font-bold"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirmation</label>
-                      <input 
-                        type="password" required
-                        value={studentData.confirmPassword}
-                        onChange={(e) => setStudentData({...studentData, confirmPassword: e.target.value})}
-                        className="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 text-sm font-bold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Téléphone (Optionnel)</label>
-                    <input 
-                      type="tel"
-                      value={studentData.phone}
-                      onChange={(e) => setStudentData({...studentData, phone: e.target.value})}
-                      className="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 text-sm font-bold"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Allergies</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {allergyOptions.map(allergy => (
-                        <label key={allergy} className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
-                          <input 
-                            type="checkbox"
-                            checked={studentData.allergies.includes(allergy)}
-                            onChange={(e) => {
-                              const newAllergies = e.target.checked 
-                                ? [...studentData.allergies, allergy]
-                                : studentData.allergies.filter(a => a !== allergy);
-                              setStudentData({...studentData, allergies: newAllergies});
-                            }}
-                            className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
-                          />
-                          <span className="text-xs font-bold text-gray-600 capitalize">{allergy}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Autres allergies</label>
-                    <input 
-                      type="text"
-                      value={studentData.otherAllergies}
-                      onChange={(e) => setStudentData({...studentData, otherAllergies: e.target.value})}
-                      placeholder="Ex: Fraises, Kiwi..."
-                      className="w-full bg-gray-50 border-none rounded-2xl py-3 px-4 text-sm font-bold"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nom Complet</label>
-                    <input 
-                      type="text" required
-                      value={clientData.fullName}
-                      onChange={(e) => setClientData({...clientData, fullName: e.target.value})}
-                      className="w-full bg-gray-50 border-none rounded-2xl py-4 px-4 text-sm font-bold"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
-                    <input 
-                      type="email" required
-                      value={clientData.email}
-                      onChange={(e) => setClientData({...clientData, email: e.target.value})}
-                      className="w-full bg-gray-50 border-none rounded-2xl py-4 px-4 text-sm font-bold"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Mot de passe</label>
-                      <input 
-                        type="password" required
-                        value={clientData.password}
-                        onChange={(e) => setClientData({...clientData, password: e.target.value})}
-                        className="w-full bg-gray-50 border-none rounded-2xl py-4 px-4 text-sm font-bold"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirmation</label>
-                      <input 
-                        type="password" required
-                        value={clientData.confirmPassword}
-                        onChange={(e) => setClientData({...clientData, confirmPassword: e.target.value})}
-                        className="w-full bg-gray-50 border-none rounded-2xl py-4 px-4 text-sm font-bold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Téléphone (Optionnel)</label>
-                    <input 
-                      type="tel"
-                      value={clientData.phone}
-                      onChange={(e) => setClientData({...clientData, phone: e.target.value})}
-                      className="w-full bg-gray-50 border-none rounded-2xl py-4 px-4 text-sm font-bold"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <button 
-                type="submit"
-                disabled={loading}
-                className="w-full bg-black text-white rounded-2xl py-4 font-black flex items-center justify-center gap-3 transition-all hover:scale-[1.02] shadow-xl disabled:opacity-50 mt-4"
-              >
-                {loading ? "Chargement..." : 
-                  authView === 'login' ? "Se Connecter" : 
-                  authView === 'forgot' ? "Réinitialiser" : "Créer mon compte"}
-                {!loading && <ArrowRight size={20} />}
-              </button>
-            </form>
-
-            <div className="mt-8 flex flex-col items-center gap-4">
-              <div className="flex items-center gap-4 w-full">
-                <div className="h-px bg-gray-100 flex-1" />
-                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Navigation</span>
-                <div className="h-px bg-gray-100 flex-1" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 w-full">
-                {authView !== 'login' && (
-                  <button onClick={() => setAuthView('login')} className="bg-gray-50 text-gray-500 py-3 rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors">Connexion</button>
-                )}
-                {authView !== 'register-student' && (
-                  <button onClick={() => setAuthView('register-student')} className="bg-emerald-50 text-emerald-600 py-3 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-colors">Inscription ESMT</button>
-                )}
-                {authView !== 'register-client' && (
-                  <button onClick={() => setAuthView('register-client')} className="bg-blue-50 text-blue-600 py-3 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors">Inscription Client</button>
-                )}
-                {authView === 'login' && (
-                  <button onClick={() => setAuthView('forgot')} className="bg-gray-50 text-gray-400 py-3 rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors">Mot de passe oublié</button>
-                )}
-              </div>
-              
-              <div className="mt-4 p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                <p className="text-[10px] text-gray-400 font-medium leading-relaxed">
-                  <strong>Personnel ESMT :</strong> Les comptes <i>Cook</i> et <i>Admin</i> ne sont pas ouverts à l'inscription publique. Contactez le département IT pour obtenir vos accès.
-                </p>
-              </div>
+          <Card className="p-10 md:p-12 border-none shadow-large bg-surface/80 backdrop-blur-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-10 text-gray-100 pointer-events-none group-hover:rotate-12 group-hover:scale-110 transition-transform">
+               <ShieldCheck size={200} />
             </div>
-          </div>
-          
-          <div className="mt-8 pt-8 border-t border-gray-50 flex items-center justify-center gap-6 opacity-30 grayscale">
-             <ShieldCheck size={20} />
-             <Zap size={20} />
-             <Sparkles size={20} />
-          </div>
+
+            <div className="relative">
+               <div className="mb-12">
+                 <h2 className="text-4xl font-bold text-ink tracking-tight">Authentification</h2>
+                 <p className="text-base text-ink-secondary font-medium mt-2">Connectez-vous à la Zone FoodPilot Network</p>
+               </div>
+
+               <AnimatePresence mode="wait">
+                 <motion.form 
+                   key={authView}
+                   initial={{ opacity: 0, y: 20 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   exit={{ opacity: 0, y: -20 }}
+                   onSubmit={handleAuth} 
+                   className="space-y-5"
+                 >
+                   {authView === 'login' || authView === 'forgot' ? (
+                     <>
+                        <Input 
+                          label="E-mail"
+                          type="email"
+                          required
+                          value={loginData.email}
+                          onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                          placeholder="votre.email@esmt.sn"
+                          icon={<Mail size={18} />}
+                        />
+                        {authView === 'login' && (
+                          <Input 
+                            label="Mot de passe"
+                            type="password"
+                            required
+                            value={loginData.password}
+                            onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                            placeholder="••••••••"
+                            icon={<Lock size={18} />}
+                          />
+                        )}
+                     </>
+                   ) : authView === 'register-student' ? (
+                     <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="grid grid-cols-2 gap-4">
+                           <Input label="Prénom" required value={studentData.firstName} onChange={e => setStudentData({...studentData, firstName: e.target.value})} />
+                           <Input label="Nom" required value={studentData.lastName} onChange={e => setStudentData({...studentData, lastName: e.target.value})} />
+                        </div>
+                        <Input label="Email (@esmt.sn)" type="email" required value={studentData.email} onChange={e => setStudentData({...studentData, email: e.target.value})} icon={<Mail size={16}/>} />
+                        <div className="grid grid-cols-2 gap-4">
+                           <Input label="Pass" type="password" required value={studentData.password} onChange={e => setStudentData({...studentData, password: e.target.value})} />
+                           <Input label="Confirm" type="password" required value={studentData.confirmPassword} onChange={e => setStudentData({...studentData, confirmPassword: e.target.value})} />
+                        </div>
+                        <div className="space-y-3">
+                           <label className="text-sm font-bold text-ink-secondary uppercase tracking-wider">Allergies</label>
+                           <div className="grid grid-cols-2 gap-3">
+                              {allergyOptions.map(a => (
+                                 <label key={a} className="flex items-center gap-2 p-4 bg-background rounded-2xl cursor-pointer hover:border-primary border border-transparent transition-all shadow-sm">
+                                    <input type="checkbox" checked={studentData.allergies.includes(a)} onChange={e => {
+                                       const news = e.target.checked ? [...studentData.allergies, a] : studentData.allergies.filter(x => x !== a);
+                                       setStudentData({...studentData, allergies: news});
+                                    }} className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary" />
+                                    <span className="text-sm font-bold text-ink-secondary capitalize">{a}</span>
+                                 </label>
+                              ))}
+                           </div>
+                        </div>
+                     </div>
+                   ) : (
+                     <div className="space-y-4">
+                        <Input label="Nom Complet" required value={clientData.fullName} onChange={e => setClientData({...clientData, fullName: e.target.value})} />
+                        <Input label="Email" type="email" required value={clientData.email} onChange={e => setClientData({...clientData, email: e.target.value})} icon={<Mail size={16}/>} />
+                        <div className="grid grid-cols-2 gap-4">
+                           <Input label="Pass" type="password" required value={clientData.password} onChange={e => setClientData({...clientData, password: e.target.value})} />
+                           <Input label="Confirm" type="password" required value={clientData.confirmPassword} onChange={e => setClientData({...clientData, confirmPassword: e.target.value})} />
+                        </div>
+                     </div>
+                   )}
+
+                   <Button type="submit" isLoading={loading} className="w-full py-6 text-base group">
+                      {authView === 'login' ? "Entrer dans le Pilotage" : authView === 'forgot' ? "Récupérer l'accès" : "Commander maintenant"}
+                      <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                   </Button>
+                 </motion.form>
+               </AnimatePresence>
+
+               <div className="mt-10 pt-10 border-t border-gray-100 dark:border-slate-800">
+                  <div className="grid grid-cols-2 gap-2">
+                     {authView !== 'login' && <Button variant="secondary" size="sm" onClick={() => setAuthView('login')}>Connexion</Button>}
+                     {authView !== 'register-student' && <Button variant="secondary" size="sm" onClick={() => setAuthView('register-student')} className="text-emerald-500">Étudiant ESMT</Button>}
+                     {authView !== 'register-client' && <Button variant="secondary" size="sm" onClick={() => setAuthView('register-client')} className="text-blue-500">Client Externe</Button>}
+                     {authView === 'login' && <Button variant="ghost" size="sm" onClick={() => setAuthView('forgot')} className="col-span-2">Accès perdu ?</Button>}
+                  </div>
+                  
+                  <div className="mt-8 flex items-center justify-center gap-6 opacity-30">
+                     <ShieldCheck size={20} />
+                     <Zap size={20} />
+                     <Play size={20} fill="currentColor" />
+                  </div>
+               </div>
+            </div>
+          </Card>
         </motion.div>
       </div>
     </div>

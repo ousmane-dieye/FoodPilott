@@ -23,7 +23,7 @@ const db = admin.firestore();
 
 async function startServer() {
   const app = express();
-  const PORT = 3001;
+  const PORT = 3000;
 
   // 1. GLOBAL SECURITY MIDDLEWARES
   app.use(helmet({
@@ -51,6 +51,19 @@ async function startServer() {
     }
 
     const idToken = authHeader.split(" ")[1];
+    
+    // SUPPORT FOR DEMO MODE TOKENS
+    if (idToken.startsWith("demo_token_")) {
+      const role = idToken.split("_")[2].toUpperCase();
+      const uid = `demo_${role.toLowerCase()}`;
+      req.user = {
+        uid,
+        email: `demo@${role.toLowerCase()}.com`,
+        role: role
+      };
+      return next();
+    }
+
     try {
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       
@@ -93,6 +106,7 @@ async function startServer() {
     })).min(1),
     slot: z.string(),
     tableId: z.string().optional(),
+    paymentMethod: z.enum(['wave', 'orange_money', 'cash']).default('cash'),
   });
 
   // --- SECURE API ROUTES ---
@@ -125,18 +139,101 @@ async function startServer() {
         items: validatedData.items,
         total,
         status: "pending",
+        paymentMethod: validatedData.paymentMethod,
+        paymentStatus: validatedData.paymentMethod === 'cash' ? 'cash_pending' : 'pending',
         slot: validatedData.slot,
         tableId: validatedData.tableId || null,
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
 
       const orderRef = await db.collection("orders").add(orderData);
-      res.json({ success: true, orderId: orderRef.id, total });
+      res.json({ success: true, orderId: orderRef.id, total, paymentMethod: validatedData.paymentMethod });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid data", details: error.issues });
       }
       res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
+
+  // --- PAYMENT SYSTEM ---
+
+  app.post("/api/payments/create", verifyToken, async (req: any, res) => {
+    const { orderId } = req.body;
+    if (!orderId) return res.status(400).json({ error: "Order ID required" });
+
+    try {
+      const orderRef = db.collection("orders").doc(orderId);
+      const orderSnap = await orderRef.get();
+
+      if (!orderSnap.exists) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      const order = orderSnap.data();
+      if (order?.userId !== req.user.uid) {
+        return res.status(403).json({ error: "Forbidden: Not your order" });
+      }
+
+      // Recalculate or use stored total (stored is safer if it was verified on create)
+      const amount = order?.total;
+
+      // Mock Payment Initialization (Wave / OM)
+      // In real world, call Wave API or OM API here
+      const transactionId = `txn_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Update order with transactionId
+      await orderRef.update({ transactionId, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+
+      // In Demo Mode: we simulation a link or a status
+      res.json({ 
+        success: true, 
+        checkoutUrl: `https://pay.foodpilot.sn/mock/${order.paymentMethod}/${transactionId}`,
+        transactionId,
+        amount
+      });
+
+    } catch (error) {
+      res.status(500).json({ error: "Payment creation failed" });
+    }
+  });
+
+  // Webhook for Payment Confirmation
+  app.post("/api/payments/webhook", async (req, res) => {
+    // SECURITY: In production, verify signature from Wave/OM
+    const { transactionId, status, secret } = req.body;
+
+    // Optional: verification secret check
+    // if (secret !== process.env.PAYMENT_WEBHOOK_SECRET) return res.status(401).end();
+
+    try {
+      const orderQuery = await db.collection("orders").where("transactionId", "==", transactionId).limit(1).get();
+      
+      if (orderQuery.empty) {
+        return res.status(404).json({ error: "Transaction not found" });
+      }
+
+      const orderDoc = orderQuery.docs[0];
+      const orderRef = orderDoc.ref;
+
+      if (status === 'success') {
+        await orderRef.update({ 
+          paymentStatus: 'paid',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        console.log(`Order ${orderDoc.id} marked as PAID via Webhook`);
+      } else {
+        await orderRef.update({ 
+          paymentStatus: 'failed',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        console.log(`Order ${orderDoc.id} marked as FAILED via Webhook`);
+      }
+
+      res.json({ received: true });
+    } catch (error) {
+      res.status(500).json({ error: "Webhook processing failed" });
     }
   });
 
@@ -161,7 +258,12 @@ async function startServer() {
   // Vite setup remains
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: {
+          port: 24679 // Use a specific port to avoid conflicts with default 24678
+        }
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
